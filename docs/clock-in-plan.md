@@ -1,6 +1,7 @@
 # Plan: real clock-in (office network check + passkey)
 
-Status · 2026-11-17: phases 0–2 done on the `clock-in` branch. Next: phase 3 (passkeys).
+Status · 2026-11-17: phases 0–2 done on the `clock-in` branch, plus a quick public tunnel for phone testing
+(`npm run share`). Next: field test on phones, then phase 3 (passkeys, which needs a fixed domain).
 
 ## Running it
 
@@ -20,6 +21,25 @@ Status · 2026-11-17: phases 0–2 done on the `clock-in` branch. Next: phase 3 
 | `npm run test:unit` | Fast tests, no server needed |
 | `npm run test:server` | Builds and starts a separate test server on port 3100 with its own throwaway database. Leave it running. Works alongside `npm run dev`. |
 | `npm run test:api` | API tests, in a second terminal while `test:server` runs |
+| `npm run share` | Builds the app, runs it on 127.0.0.1:3200 with `TRUSTED_PROXY=cloudflare`, and opens a Cloudflare quick tunnel. Prints a public `https://….trycloudflare.com` address for phones. Uses the normal demo database. The address changes every time it starts. Needs `cloudflared` (`winget install --id Cloudflare.cloudflared`). |
+
+### Phone field test (with `npm run share` running)
+
+You need two phones, or one phone you can switch between Wi-Fi and mobile data. Do it at the office to test the
+real office network, or at home to rehearse (home Wi-Fi plays the role of "office").
+
+1. **Phone A on Wi-Fi:** open the public address, sign in as `admin@fado.demo`, open **Admin**. Under *Office networks*,
+   "You're connecting from" shows the phone's public IP. Tap **Add the network I'm on**.
+2. **Phone B on the same Wi-Fi:** sign in as `alex@fado.demo`. The Today page should say *On the office network*.
+   Tap **Clock in** → accepted.
+3. **Phone B switches to 4G** (Wi-Fi off): reload. It should say *Not on the office network* with a different IP.
+   Tap **Clock out** → refused with the VPN hint.
+4. **Back on Wi-Fi:** Clock out → accepted.
+5. **VPN on** (if available): any punch → refused. VPN off → accepted.
+6. **Admin → Clock-in log:** every step above appears with its IP, device and reason.
+
+Things to note for the product document: the IPs you saw on Wi-Fi vs 4G, and whether the Wi-Fi IP stays the same
+over a day (some internet plans change it).
 
 Setting one of the variables above by hand differs per shell:
 PowerShell `$env:WORKDAY_NOW="2026-11-11T08:55"; npm run dev` · bash `WORKDAY_NOW=2026-11-11T08:55 npm run dev`.
