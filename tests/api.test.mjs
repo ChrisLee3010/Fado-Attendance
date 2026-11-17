@@ -2,10 +2,10 @@ import { test, before, beforeEach, after } from "node:test";
 import assert from "node:assert/strict";
 import { DEMO_PASSWORD } from "../src/lib/demo-accounts.ts";
 
-// Start the server with WORKDAY_TEST_CLOCK=1 (so tests can move its clock) and TRUSTED_PROXY=cloudflare
-// (so each test client can say which network it is on, the way Cloudflare's CF-Connecting-IP header would).
+// Run `npm run test:server` first (it starts a server on port 3100 with the test clock on and TRUSTED_PROXY=cloudflare,
+// so each test client can say which network it is on, the way Cloudflare's CF-Connecting-IP header would).
 // Every test runs on Wednesday 11 November 2026; the fictional history fills the working days before it.
-const BASE = process.env.BASE_URL ?? "http://localhost:3000";
+const BASE = process.env.BASE_URL ?? "http://localhost:3100";
 const TEST_DAY = "2026-11-11";
 
 // Documentation-only address ranges (RFC 5737 / RFC 3849), never real networks.
@@ -70,7 +70,7 @@ let admin, alex, sarah, cashier;
 
 async function setClock(time) {
   const result = await admin.call("POST", "/api/test/clock", { now: time === null ? null : `${TEST_DAY}T${time}` });
-  assert.equal(result.status, 200, "start the server with WORKDAY_TEST_CLOCK=1 to run the API tests");
+  assert.equal(result.status, 200, `the server at ${BASE} isn't a test server: start one with \`npm run test:server\``);
 }
 
 async function resetAt(time = "12:00") {
@@ -91,6 +91,9 @@ const officeNetworkIds = async () =>
   (await admin.call("GET", "/api/admin/attendance")).data.networks.filter((network) => network.label.startsWith("Test ")).map((network) => network.id);
 
 before(async () => {
+  await fetch(BASE).catch(() => {
+    throw new Error(`Nothing is running at ${BASE}. Start the test server in another terminal first: npm run test:server`);
+  });
   [admin, alex, sarah, cashier] = [new Client(), new Client(), new Client(), new Client()];
   await admin.login("admin@fado.demo");
   await alex.login("alex@fado.demo");

@@ -12,8 +12,17 @@ Status · 2026-11-17: phases 0–2 done on the `clock-in` branch. Next: phase 3 
 | `WORKDAY_NOW=2026-11-11T08:55` | Freezes the clock for a demo. |
 | `WORKDAY_TEST_CLOCK=1` | Enables `/api/test/clock` (admin only) for the API tests. Never set this for real use. |
 
-API tests: start the server with `WORKDAY_TEST_CLOCK=1 TRUSTED_PROXY=cloudflare`, then `BASE_URL=… npm run test:api`.
-Only one `next dev` can run per folder, so when one is already running use `next build` + `next start -p 3100` for tests.
+### Commands (from the `workday-quest` folder; work in PowerShell, cmd and bash)
+
+| Command | What it does |
+|---|---|
+| `npm run dev` | The app for trying it yourself, on http://localhost:3000 |
+| `npm run test:unit` | Fast tests, no server needed |
+| `npm run test:server` | Builds and starts a separate test server on port 3100 with its own throwaway database. Leave it running. Works alongside `npm run dev`. |
+| `npm run test:api` | API tests, in a second terminal while `test:server` runs |
+
+Setting one of the variables above by hand differs per shell:
+PowerShell `$env:WORKDAY_NOW="2026-11-11T08:55"; npm run dev` · bash `WORKDAY_NOW=2026-11-11T08:55 npm run dev`.
 
 ## Goal
 
