@@ -1,8 +1,11 @@
-import { test, before, beforeEach } from "node:test";
+import { test, before, beforeEach, after } from "node:test";
 import assert from "node:assert/strict";
 import { DEMO_PASSWORD } from "../src/lib/demo-accounts.ts";
 
+// The server must run with WORKDAY_TEST_CLOCK=1 so these tests can move its clock.
+// Every test runs on Wednesday 11 November 2026; the fictional history fills the working days before it.
 const BASE = process.env.BASE_URL ?? "http://localhost:3000";
+const TEST_DAY = "2026-11-11";
 
 class Client {
   cookie = "";
@@ -28,11 +31,25 @@ class Client {
   }
 
   wallet = async () => (await this.call("GET", "/api/wallet")).data;
-  clockOut = (time) => this.call("POST", "/api/clock-out", { time });
+  // The server decides the time, so "clock out at 18:05" means: move the server clock to 18:05, then clock out.
+  clockOut = async (time) => {
+    await setClock(time);
+    return this.call("POST", "/api/clock-out", {});
+  };
   redeem = () => this.call("POST", "/api/redeem", { rewardId: "coffee" });
 }
 
 let admin, alex, sarah, cashier;
+
+async function setClock(time) {
+  const result = await admin.call("POST", "/api/test/clock", { now: time === null ? null : `${TEST_DAY}T${time}` });
+  assert.equal(result.status, 200, "start the server with WORKDAY_TEST_CLOCK=1 to run the API tests");
+}
+
+async function resetAt(time = "12:00") {
+  await setClock(time);
+  await admin.call("POST", "/api/reset");
+}
 
 before(async () => {
   [admin, alex, sarah, cashier] = [new Client(), new Client(), new Client(), new Client()];
@@ -42,7 +59,11 @@ before(async () => {
   await cashier.login("cashier@fado.demo");
 });
 
-beforeEach(async () => {
+beforeEach(() => resetAt());
+
+// Leave the server on real time with fresh demo data.
+after(async () => {
+  await setClock(null);
   await admin.call("POST", "/api/reset");
 });
 
@@ -267,7 +288,7 @@ test("clock-out inside the Perfect Day window awards 2 credits exactly once", as
 
 test("clock-out boundaries: 18:00 and 18:10 qualify, 17:59 and 18:11 do not", async () => {
   for (const [time, expected] of [["18:00", true], ["18:10", true], ["17:59", false], ["18:11", false], ["18:30", false]]) {
-    await admin.call("POST", "/api/reset");
+    await resetAt();
     assert.equal((await alex.clockOut(time)).data.qualifies, expected, `clock-out at ${time}`);
     const state = await alex.wallet();
     assert.equal(state.balance, expected ? 40 : 38, `balance after ${time}`);
@@ -275,9 +296,37 @@ test("clock-out boundaries: 18:00 and 18:10 qualify, 17:59 and 18:11 do not", as
   }
 });
 
-test("invalid clock-out time is rejected", async () => {
-  assert.equal((await alex.clockOut("25:99")).status, 400);
-  assert.equal((await alex.clockOut("soon")).status, 400);
+test("the browser can't choose its clock-out time: the server's clock decides", async () => {
+  await setClock("17:30");
+  const result = await alex.call("POST", "/api/clock-out", { time: "18:05" });
+  assert.equal(result.status, 200);
+  assert.equal(result.data.time, "17:30");
+  assert.equal(result.data.qualifies, false);
+  assert.equal((await alex.wallet()).clockOut, "17:30");
+});
+
+test("the wallet reports the server's current date and time", async () => {
+  await setClock("09:41");
+  const state = await alex.wallet();
+  assert.deepEqual([state.today, state.now], [TEST_DAY, "09:41"]);
+});
+
+test("redemptions and voucher use are stamped with the server's time", async () => {
+  await alex.clockOut("18:05");
+  await setClock("18:20");
+  const { code } = (await alex.redeem()).data;
+  await setClock("18:31");
+  await cashier.call("POST", `/api/vouchers/${code}/consume`);
+
+  const state = await alex.wallet();
+  assert.deepEqual([state.voucherIssuedAt, state.voucherUsedAt], ["Today · 18:20", "Today · 18:31"]);
+  assert.equal(state.ledger[0].time, "18:20");
+  assert.equal((await admin.call("GET", "/api/admin/overview")).data.redemptions.find((item) => item.code === code).when, "Today · 18:20");
+});
+
+test("the test clock only accepts a real date and time", async () => {
+  assert.equal((await admin.call("POST", "/api/test/clock", { now: "soon" })).status, 400);
+  assert.equal((await alex.call("POST", "/api/test/clock", { now: `${TEST_DAY}T09:00` })).status, 403, "only an admin can move it");
 });
 
 test("redeeming without enough credits is refused", async () => {

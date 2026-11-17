@@ -48,7 +48,7 @@ export default function RewardsPage() {
               </p>
             </div>
             <div className="voucher-code"><span>VOUCHER CODE</span><strong>{state.voucher}</strong></div>
-            <div className="voucher-foot"><span>{state.voucherUsedAt ? `Used ${state.voucherUsedAt.toLowerCase()}` : "Issued today · 18:05"}</span><span>{COFFEE_COST} credits redeemed</span></div>
+            <div className="voucher-foot"><span>{state.voucherUsedAt ? `Used ${state.voucherUsedAt.toLowerCase()}` : `Issued ${(state.voucherIssuedAt ?? "").toLowerCase()}`}</span><span>{COFFEE_COST} credits redeemed</span></div>
           </section>
         ) : (
           <section className="featured-reward">

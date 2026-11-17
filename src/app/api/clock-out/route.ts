@@ -1,16 +1,12 @@
 import { authorize } from "@/lib/server/auth";
-import { json, readJson } from "@/lib/server/http";
-import { isValidTime } from "@/lib/perfect-day";
+import { json } from "@/lib/server/http";
 import { clockOut } from "@/lib/server/store";
 
+// Any time sent in the body is ignored: the server's clock decides when you left.
 export async function POST(request: Request) {
   const auth = await authorize(request, "employee");
   if (!auth.ok) return auth.response;
 
-  const body = await readJson(request);
-  const time = typeof body.time === "string" ? body.time : "18:05";
-  if (!isValidTime(time)) return json({ error: "invalid_time" }, 400);
-
-  const result = clockOut(time, auth.user.employeeId!);
+  const result = clockOut(auth.user.employeeId!);
   return result.ok ? json(result) : json(result, 409);
 }

@@ -5,6 +5,7 @@ import type { HistoryEntry } from "./history";
 export type WalletState = {
   loaded: boolean;
   today: string;
+  now: string;
   clockedOut: boolean;
   clockIn: string | null;
   clockOut: string | null;
@@ -14,6 +15,7 @@ export type WalletState = {
   window: { clockIn: string; clockOut: string };
   balance: number;
   voucher: string | null;
+  voucherIssuedAt: string | null;
   voucherUsedAt: string | null;
   ledger: HistoryEntry[];
 };
@@ -21,6 +23,7 @@ export type WalletState = {
 const walletStore = createPolledStore<WalletState>("/api/wallet", {
   loaded: false,
   today: "",
+  now: "",
   clockedOut: false,
   clockIn: null,
   clockOut: null,
@@ -30,6 +33,7 @@ const walletStore = createPolledStore<WalletState>("/api/wallet", {
   window: { clockIn: "08:50–09:00", clockOut: "18:00–18:10" },
   balance: 0,
   voucher: null,
+  voucherIssuedAt: null,
   voucherUsedAt: null,
   ledger: [],
 });
@@ -40,7 +44,7 @@ export function useWallet() {
 }
 
 export function clockOut() {
-  return post("/api/clock-out", { time: "18:05" });
+  return post("/api/clock-out");
 }
 
 export function redeemCoffee() {

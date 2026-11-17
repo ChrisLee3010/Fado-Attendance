@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { AppRail } from "@/components/app-rail";
 import { SignOutButton } from "@/components/sign-out-button";
-import { formatWhen } from "@/lib/history";
+import { formatWeekday, formatWhen } from "@/lib/history";
 import { weekdayIndex } from "@/lib/progress";
 import { useProgress } from "@/lib/progress-store";
 import { useMe } from "@/lib/session";
@@ -16,6 +17,41 @@ function weekOf(today: string) {
   const [year, month, day] = today.split("-").map(Number);
   const offset = weekdayIndex(today);
   return Array.from({ length: 5 }, (_, index) => new Date(Date.UTC(year, month - 1, day - offset + index)).toISOString().slice(0, 10));
+}
+
+function greeting(time: string) {
+  if (time < "12:00") return "Good morning";
+  if (time < "18:00") return "Good afternoon";
+  return "Good evening";
+}
+
+// Leaving before the shift ends is allowed but costs the Perfect Day, so it takes a second tap.
+function useClockOut(shiftEnd: string, now: string) {
+  const [confirming, setConfirming] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const early = now !== "" && now < shiftEnd;
+
+  useEffect(() => {
+    if (!confirming) return;
+    const timer = setTimeout(() => setConfirming(false), 4000);
+    return () => clearTimeout(timer);
+  }, [confirming]);
+
+  async function press() {
+    if (early && !confirming) {
+      setConfirming(true);
+      return;
+    }
+    setConfirming(false);
+    setBusy(true);
+    try {
+      await clockOut();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return { press, confirming, busy, early };
 }
 
 export default function Home() {
@@ -31,16 +67,33 @@ export default function Home() {
   const showPending = !clockedOut && !!state.clockIn;
   const recent = ledger.slice(0, showPending ? 3 : 4);
 
+  const clockedIn = !!state.clockIn;
+  const punch = useClockOut(state.shift.end, state.now);
   const onTrack = state.arrival === "on_time";
-  const arrivalNote = onTrack ? "Right on time" : state.arrival === "late" ? `After ${state.shift.start}` : "Before the Perfect Day window";
-  const heading = clockedOut ? (state.perfectDay ? "A perfect day." : "Day complete.") : onTrack ? "You're on track." : "You're checked in.";
-  const footer = clockedOut
-    ? state.perfectDay
-      ? "Your attendance window qualified. 2 credits added to your wallet."
-      : `Your attendance is recorded. A Perfect Day needs a clock-in ${state.window.clockIn} and a clock-out ${state.window.clockOut}.`
-    : onTrack
-      ? `Clock out between ${state.window.clockOut} to earn your Perfect Day credit.`
-      : `Today's Perfect Day needs a clock-in ${state.window.clockIn}, but your attendance still counts.`;
+  const arrivalNote = !clockedIn ? "Not yet" : onTrack ? "Right on time" : state.arrival === "late" ? `After ${state.shift.start}` : "Before the Perfect Day window";
+  const heading = !clockedIn
+    ? "Not clocked in yet."
+    : clockedOut
+      ? (state.perfectDay ? "A perfect day." : "Day complete.")
+      : onTrack ? "You're on track." : "You're checked in.";
+  const footer = !clockedIn
+    ? `There's no clock-in for today yet. A Perfect Day starts with a clock-in ${state.window.clockIn}.`
+    : clockedOut
+      ? state.perfectDay
+        ? "Your attendance window qualified. 2 credits added to your wallet."
+        : `Your attendance is recorded. A Perfect Day needs a clock-in ${state.window.clockIn} and a clock-out ${state.window.clockOut}.`
+      : punch.confirming
+        ? `It's before ${state.shift.end}, so today won't count as a Perfect Day. Tap again to clock out anyway.`
+        : onTrack
+          ? `Clock out between ${state.window.clockOut} to earn your Perfect Day credit.`
+          : `Today's Perfect Day needs a clock-in ${state.window.clockIn}, but your attendance still counts.`;
+  const buttonLabel = clockedOut
+    ? <><CheckIcon /> {state.perfectDay ? "2 credits earned" : "Attendance recorded"}</>
+    : !clockedIn
+      ? <><ClockIcon /> Waiting for clock-in</>
+      : punch.confirming
+        ? <><ClockIcon /> Tap again to leave early</>
+        : <><ClockIcon /> {punch.early ? "Clock out early" : "Clock out"}</>;
 
   return (
     <main className={`app-shell ${state.loaded && me.loaded ? "" : "is-loading"}`}>
@@ -48,14 +101,14 @@ export default function Home() {
 
       <section className="content" id="top">
         <header className="topbar">
-          <p><span className="eyebrow-dot" /> Wednesday, 11 November</p>
+          <p><span className="eyebrow-dot" /> {state.today && formatWeekday(state.today)}</p>
           <SignOutButton className="text-button" />
         </header>
 
         <div className="welcome-row">
           <div>
             <p className="section-kicker">YOUR WORKDAY</p>
-            <h1>Good morning,<br />{me.firstName}.</h1>
+            <h1>{greeting(state.now)},<br />{me.firstName}.</h1>
           </div>
           <p className="quiet-note">Keep it steady.<br />Small wins add up.</p>
         </div>
@@ -68,7 +121,7 @@ export default function Home() {
             </div>
             <div className="status-stamp">
               <span className="status-light" />
-              {clockedOut ? "COMPLETE" : "IN PROGRESS"}
+              {clockedOut ? "COMPLETE" : clockedIn ? "IN PROGRESS" : "NOT STARTED"}
             </div>
           </div>
 
@@ -90,10 +143,10 @@ export default function Home() {
             <p>{footer}</p>
             <button
               className="clockout-button"
-              onClick={clockOut}
-              disabled={clockedOut}
+              onClick={punch.press}
+              disabled={clockedOut || !clockedIn || punch.busy}
             >
-              {clockedOut ? <><CheckIcon /> {state.perfectDay ? "2 credits earned" : "Attendance recorded"}</> : <><ClockIcon /> Simulate 18:05 clock-out</>}
+              {buttonLabel}
             </button>
           </div>
         </section>

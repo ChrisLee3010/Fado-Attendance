@@ -3,12 +3,13 @@
 import { AppRail } from "@/components/app-rail";
 import { SignOutButton } from "@/components/sign-out-button";
 import { decideLeave, useAdminOverview } from "@/lib/admin";
+import { formatWeekday } from "@/lib/history";
 import { useMe } from "@/lib/session";
 import { resetDemo } from "@/lib/wallet";
 
 export default function AdminPage() {
   const me = useMe();
-  const { loaded, leave, redemptions, catalogue, stats } = useAdminOverview();
+  const { loaded, today, leave, redemptions, catalogue, stats } = useAdminOverview();
 
   return (
     <main className={`app-shell ${loaded && me.loaded ? "" : "is-loading"}`}>
@@ -16,7 +17,7 @@ export default function AdminPage() {
 
       <section className="content">
         <header className="topbar">
-          <p><span className="eyebrow-dot" /> Wednesday, 11 November</p>
+          <p><span className="eyebrow-dot" /> {today && formatWeekday(today)}</p>
           <div className="topbar-actions">
             <button className="text-button" onClick={resetDemo}>Reset demo</button>
             <SignOutButton className="text-button" />

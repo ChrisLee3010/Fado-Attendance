@@ -28,6 +28,7 @@ export type CatalogueItem = { id: string; name: string; kind: string; cost: numb
 
 export type AdminOverview = {
   loaded: boolean;
+  today: string;
   leave: LeaveRequest[];
   redemptions: AdminRedemption[];
   catalogue: CatalogueItem[];
@@ -36,6 +37,7 @@ export type AdminOverview = {
 
 const adminStore = createPolledStore<AdminOverview>("/api/admin/overview", {
   loaded: false,
+  today: "",
   leave: [],
   redemptions: [],
   catalogue: [],

@@ -67,14 +67,28 @@ export function formatDay(date: string) {
   return `${day} ${MONTHS[month - 1]} ${year}`;
 }
 
-function formatShort(date: string) {
+export function formatShort(date: string) {
   const [, month, day] = date.split("-").map(Number);
   return `${day} ${MONTHS[month - 1].slice(0, 3)}`;
+}
+
+const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+// "Wednesday, 11 November"
+export function formatWeekday(date: string) {
+  const [year, month, day] = date.split("-").map(Number);
+  return `${WEEKDAYS[new Date(Date.UTC(year, month - 1, day)).getUTCDay()]}, ${day} ${MONTHS[month - 1]}`;
 }
 
 export function formatWhen(entry: Pick<HistoryEntry, "date" | "time">, today: string) {
   const day = entry.date === today ? "Today" : entry.date === shiftDate(today, -1) ? "Yesterday" : formatShort(entry.date);
   return `${day} · ${entry.time}`;
+}
+
+// Same as formatWhen, for "YYYY-MM-DD HH:MM" stamps stored in the database.
+export function formatStamp(stamp: string, today: string) {
+  const [date, time] = stamp.split(" ");
+  return formatWhen({ date, time }, today);
 }
 
 function inPeriod(date: string, period: Period, today: string) {

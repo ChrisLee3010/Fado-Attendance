@@ -1,5 +1,6 @@
-import { DEMO_DATE, getDb, inTransaction } from "./db";
-import type { Category, HistoryEntry } from "../history";
+import { getDb, inTransaction } from "./db";
+import { now, stamp, today } from "./clock";
+import { formatStamp, type Category, type HistoryEntry } from "../history";
 import { classifyArrival, evaluatePerfectDay, PERFECT_DAY_CREDITS, perfectDayWindow, type Shift } from "../perfect-day";
 import {
   buildMonth,
@@ -31,12 +32,13 @@ function balanceOf(employeeId: string) {
 
 export function getWallet(employeeId: string) {
   const db = getDb();
-  const events = db.prepare("SELECT kind, at_time FROM attendance_events WHERE employee_id = ? AND work_date = ?").all(employeeId, DEMO_DATE);
+  const { date: todayDate, time } = now();
+  const events = db.prepare("SELECT kind, at_time FROM attendance_events WHERE employee_id = ? AND work_date = ?").all(employeeId, todayDate);
   const clockIn = events.find((event) => event.kind === "clock_in");
   const out = events.find((event) => event.kind === "clock_out");
   const employee = db.prepare("SELECT shift_start, shift_end FROM employees WHERE id = ?").get(employeeId);
   const shift = { start: String(employee?.shift_start ?? "09:00"), end: String(employee?.shift_end ?? "18:00") };
-  const perfectDay = !!db.prepare("SELECT 1 AS found FROM credit_transactions WHERE source_ref = ?").get(`perfect-day:${employeeId}:${DEMO_DATE}`);
+  const perfectDay = !!db.prepare("SELECT 1 AS found FROM credit_transactions WHERE source_ref = ?").get(`perfect-day:${employeeId}:${todayDate}`);
   const ledger: HistoryEntry[] = db
     .prepare(
       `SELECT t.id, t.amount, t.type, t.title, t.occurred_on, t.occurred_time, r.status AS voucher_status
@@ -55,11 +57,12 @@ export function getWallet(employeeId: string) {
       status: row.type === "redemption" ? (row.voucher_status === "used" ? "used" : "issued") : "credited",
     }));
   const voucher = db
-    .prepare("SELECT code, used_at_label FROM redemptions WHERE employee_id = ? AND reward_id = 'coffee' ORDER BY id DESC LIMIT 1")
+    .prepare("SELECT code, issued_at, used_at FROM redemptions WHERE employee_id = ? AND reward_id = 'coffee' ORDER BY id DESC LIMIT 1")
     .get(employeeId);
 
   return {
-    today: DEMO_DATE,
+    today: todayDate,
+    now: time,
     clockedOut: !!out,
     clockIn: clockIn ? String(clockIn.at_time) : null,
     clockOut: out ? String(out.at_time) : null,
@@ -70,7 +73,8 @@ export function getWallet(employeeId: string) {
     balance: balanceOf(employeeId),
     ledger,
     voucher: voucher ? String(voucher.code) : null,
-    voucherUsedAt: voucher?.used_at_label ? String(voucher.used_at_label) : null,
+    voucherIssuedAt: voucher ? formatStamp(String(voucher.issued_at), todayDate) : null,
+    voucherUsedAt: voucher?.used_at ? formatStamp(String(voucher.used_at), todayDate) : null,
   };
 }
 
@@ -81,8 +85,8 @@ function shiftOf(db: Db, employeeId: string): Shift {
   return { start: String(employee?.shift_start ?? "09:00"), end: String(employee?.shift_end ?? "18:00") };
 }
 
-function loadMonth(db: Db, employeeId: string, shift: Shift) {
-  const month = DEMO_DATE.slice(0, 7);
+function loadMonth(db: Db, employeeId: string, shift: Shift, todayDate: string) {
+  const month = todayDate.slice(0, 7);
   const punches: Record<string, Punches> = {};
   for (const row of db.prepare("SELECT kind, work_date, at_time FROM attendance_events WHERE employee_id = ? AND work_date LIKE ?").all(employeeId, `${month}-%`)) {
     const punch = (punches[String(row.work_date)] ??= { in: null, out: null });
@@ -93,24 +97,25 @@ function loadMonth(db: Db, employeeId: string, shift: Shift) {
   for (const row of db.prepare("SELECT date, kind FROM days_off WHERE employee_id = ? AND date LIKE ?").all(employeeId, `${month}-%`)) {
     daysOff[String(row.date)] = row.kind as DayOff;
   }
-  return buildMonth({ month, today: DEMO_DATE, shift, punches, daysOff });
+  return buildMonth({ month, today: todayDate, shift, punches, daysOff });
 }
 
-function awardMilestones(db: Db, employeeId: string, shift: Shift, time: string) {
-  const month = DEMO_DATE.slice(0, 7);
-  const reached = milestonesReached(perfectDayCount(loadMonth(db, employeeId, shift)));
+function awardMilestones(db: Db, employeeId: string, shift: Shift, todayDate: string, time: string) {
+  const month = todayDate.slice(0, 7);
+  const reached = milestonesReached(perfectDayCount(loadMonth(db, employeeId, shift, todayDate)));
   const insert = db.prepare("INSERT OR IGNORE INTO credit_transactions (employee_id, amount, type, title, occurred_on, occurred_time, source_ref, actor) VALUES (?, ?, 'milestone', ?, ?, ?, ?, 'system')");
   for (const target of reached) {
-    insert.run(employeeId, milestoneCredits(target), milestoneTitle(target), DEMO_DATE, time, `milestone:${employeeId}:${month}:pd-${target}`);
+    insert.run(employeeId, milestoneCredits(target), milestoneTitle(target), todayDate, time, `milestone:${employeeId}:${month}:pd-${target}`);
   }
 }
 
 export function getProgress(employeeId: string) {
   const db = getDb();
-  const month = DEMO_DATE.slice(0, 7);
+  const todayDate = today();
+  const month = todayDate.slice(0, 7);
   const shift = shiftOf(db, employeeId);
-  const days = loadMonth(db, employeeId, shift);
-  const stats = monthStats(days, DEMO_DATE);
+  const days = loadMonth(db, employeeId, shift, todayDate);
+  const stats = monthStats(days, todayDate);
 
   const reached = db
     .prepare("SELECT id, title, amount, occurred_on FROM credit_transactions WHERE employee_id = ? AND type = 'milestone' AND occurred_on LIKE ? ORDER BY occurred_on DESC, occurred_time DESC, id DESC")
@@ -122,7 +127,7 @@ export function getProgress(employeeId: string) {
   const balance = balanceOf(employeeId);
 
   return {
-    today: DEMO_DATE,
+    today: todayDate,
     month,
     shift,
     window: perfectDayWindow(shift),
@@ -138,17 +143,19 @@ export function getProgress(employeeId: string) {
 }
 
 export type ClockOutResult =
-  | { ok: true; alreadyClockedOut: boolean; qualifies: boolean; reason: string }
+  | { ok: true; alreadyClockedOut: boolean; qualifies: boolean; reason: string; time: string }
   | { ok: false; error: "no_clock_in" };
 
-export function clockOut(time: string, employeeId: string): ClockOutResult {
+// The time always comes from the server's clock, never from the browser.
+export function clockOut(employeeId: string): ClockOutResult {
   return inTransaction((db) => {
+    const { date: todayDate, time } = now();
     const employee = db.prepare("SELECT shift_start, shift_end FROM employees WHERE id = ?").get(employeeId);
-    const clockIn = db.prepare("SELECT at_time FROM attendance_events WHERE employee_id = ? AND work_date = ? AND kind = 'clock_in'").get(employeeId, DEMO_DATE);
+    const clockIn = db.prepare("SELECT at_time FROM attendance_events WHERE employee_id = ? AND work_date = ? AND kind = 'clock_in'").get(employeeId, todayDate);
     if (!employee || !clockIn) return { ok: false, error: "no_clock_in" } as const;
 
-    const existing = db.prepare("SELECT 1 AS found FROM attendance_events WHERE employee_id = ? AND work_date = ? AND kind = 'clock_out'").get(employeeId, DEMO_DATE);
-    if (existing) return { ok: true, alreadyClockedOut: true, qualifies: false, reason: "already_clocked_out" } as const;
+    const existing = db.prepare("SELECT at_time FROM attendance_events WHERE employee_id = ? AND work_date = ? AND kind = 'clock_out'").get(employeeId, todayDate);
+    if (existing) return { ok: true, alreadyClockedOut: true, qualifies: false, reason: "already_clocked_out", time: String(existing.at_time) } as const;
 
     const result = evaluatePerfectDay(
       { start: String(employee.shift_start), end: String(employee.shift_end) },
@@ -157,14 +164,14 @@ export function clockOut(time: string, employeeId: string): ClockOutResult {
     );
 
     db.prepare("INSERT INTO attendance_events (ext_id, employee_id, kind, work_date, at_time) VALUES (?, ?, 'clock_out', ?, ?)")
-      .run(`kiosk:${employeeId}:${DEMO_DATE}:out`, employeeId, DEMO_DATE, time);
+      .run(`app:${employeeId}:${todayDate}:out`, employeeId, todayDate, time);
 
     if (result.qualifies) {
       db.prepare("INSERT INTO credit_transactions (employee_id, amount, type, title, occurred_on, occurred_time, source_ref, actor) VALUES (?, ?, 'perfect_day', 'Perfect Day bonus', ?, ?, ?, 'system')")
-        .run(employeeId, PERFECT_DAY_CREDITS, DEMO_DATE, time, `perfect-day:${employeeId}:${DEMO_DATE}`);
-      awardMilestones(db, employeeId, shiftOf(db, employeeId), time);
+        .run(employeeId, PERFECT_DAY_CREDITS, todayDate, time, `perfect-day:${employeeId}:${todayDate}`);
+      awardMilestones(db, employeeId, shiftOf(db, employeeId), todayDate, time);
     }
-    return { ok: true, alreadyClockedOut: false, qualifies: result.qualifies, reason: result.reason } as const;
+    return { ok: true, alreadyClockedOut: false, qualifies: result.qualifies, reason: result.reason, time } as const;
   });
 }
 
@@ -192,10 +199,11 @@ export function redeem(rewardId: string, employeeId: string): RedeemResult {
     if (Number(stock.changes) !== 1) return { ok: false, error: "out_of_stock" } as const;
 
     const code = newVoucherCode(db);
-    db.prepare("INSERT INTO redemptions (employee_id, reward_id, code, cost, status, when_label) VALUES (?, ?, ?, ?, 'issued', 'Today · 18:05')")
-      .run(employeeId, rewardId, code, cost);
-    db.prepare("INSERT INTO credit_transactions (employee_id, amount, type, title, occurred_on, occurred_time, source_ref, actor) VALUES (?, ?, 'redemption', ?, ?, '18:05', ?, ?)")
-      .run(employeeId, -cost, `${String(reward.name)} voucher`, DEMO_DATE, `redeem:${code}`, employeeId);
+    const { date, time } = now();
+    db.prepare("INSERT INTO redemptions (employee_id, reward_id, code, cost, status, issued_at) VALUES (?, ?, ?, ?, 'issued', ?)")
+      .run(employeeId, rewardId, code, cost, `${date} ${time}`);
+    db.prepare("INSERT INTO credit_transactions (employee_id, amount, type, title, occurred_on, occurred_time, source_ref, actor) VALUES (?, ?, 'redemption', ?, ?, ?, ?, ?)")
+      .run(employeeId, -cost, `${String(reward.name)} voucher`, date, time, `redeem:${code}`, employeeId);
     return { ok: true, code } as const;
   });
 }
@@ -207,7 +215,7 @@ export type VoucherInfo =
 export function checkVoucher(code: string): VoucherInfo {
   const row = getDb()
     .prepare(
-      `SELECT r.code, r.status, r.cost, r.used_at_label, w.name AS reward, e.name AS employee, e.id AS employee_id
+      `SELECT r.code, r.status, r.cost, r.used_at, w.name AS reward, e.name AS employee, e.id AS employee_id
        FROM redemptions r JOIN rewards w ON w.id = r.reward_id JOIN employees e ON e.id = r.employee_id
        WHERE r.code = ?`,
     )
@@ -220,23 +228,24 @@ export function checkVoucher(code: string): VoucherInfo {
     employee: String(row.employee),
     employeeId: String(row.employee_id),
     cost: Number(row.cost),
-    usedAt: row.used_at_label ? String(row.used_at_label) : null,
+    usedAt: row.used_at ? formatStamp(String(row.used_at), today()) : null,
   };
 }
 
 export function consumeVoucher(code: string, actorId: string) {
   const normalized = normalizeCode(code);
   const changed = inTransaction((db) =>
-    db.prepare("UPDATE redemptions SET status = 'used', used_at_label = 'Today · 18:12', used_by = ? WHERE code = ? AND status = 'issued'").run(actorId, normalized),
+    db.prepare("UPDATE redemptions SET status = 'used', used_at = ?, used_by = ? WHERE code = ? AND status = 'issued'").run(stamp(), actorId, normalized),
   );
   return { consumed: Number(changed.changes) === 1, voucher: checkVoucher(normalized) };
 }
 
 export function getAdminOverview() {
   const db = getDb();
+  const todayDate = today();
   const leave = db
     .prepare(
-      `SELECT l.id, l.note, l.cost, l.asked_label, l.status, l.decided_label, e.name, e.id AS employee_id, e.department
+      `SELECT l.id, l.note, l.cost, l.asked_at, l.status, l.decided_at, e.name, e.id AS employee_id, e.department
        FROM leave_requests l JOIN employees e ON e.id = l.employee_id ORDER BY l.id`,
     )
     .all()
@@ -247,13 +256,13 @@ export function getAdminOverview() {
       dept: String(row.department),
       note: String(row.note),
       cost: Number(row.cost),
-      asked: String(row.asked_label),
+      asked: formatStamp(String(row.asked_at), todayDate),
       status: String(row.status) as "pending" | "approved" | "rejected",
-      decidedAt: row.decided_label ? String(row.decided_label) : null,
+      decidedAt: row.decided_at ? formatStamp(String(row.decided_at), todayDate) : null,
     }));
   const redemptions = db
     .prepare(
-      `SELECT r.id, r.code, r.cost, r.status, r.when_label, w.name AS reward, e.name, e.id AS employee_id
+      `SELECT r.id, r.code, r.cost, r.status, r.issued_at, w.name AS reward, e.name, e.id AS employee_id
        FROM redemptions r JOIN rewards w ON w.id = r.reward_id JOIN employees e ON e.id = r.employee_id ORDER BY r.id DESC`,
     )
     .all()
@@ -264,7 +273,7 @@ export function getAdminOverview() {
       reward: String(row.reward),
       code: String(row.code),
       cost: Number(row.cost),
-      when: String(row.when_label),
+      when: formatStamp(String(row.issued_at), todayDate),
       status: String(row.status) as "issued" | "used",
     }));
   const catalogue = db
@@ -273,6 +282,7 @@ export function getAdminOverview() {
     .map((row) => ({ id: String(row.id), name: String(row.name), kind: String(row.kind), cost: Number(row.cost), stock: row.stock === null ? null : Number(row.stock) }));
 
   return {
+    today: todayDate,
     leave,
     redemptions,
     catalogue,
@@ -286,7 +296,7 @@ export function getAdminOverview() {
 
 export function decideLeave(id: string, decision: "approved" | "rejected", actorId: string) {
   const result = inTransaction((db) =>
-    db.prepare("UPDATE leave_requests SET status = ?, decided_label = 'Today · 18:20', decided_by = ? WHERE id = ? AND status = 'pending'").run(decision, actorId, id),
+    db.prepare("UPDATE leave_requests SET status = ?, decided_at = ?, decided_by = ? WHERE id = ? AND status = 'pending'").run(decision, stamp(), actorId, id),
   );
   if (Number(result.changes) === 1) return { ok: true } as const;
   const exists = getDb().prepare("SELECT status FROM leave_requests WHERE id = ?").get(id);

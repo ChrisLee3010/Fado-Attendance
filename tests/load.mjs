@@ -55,7 +55,7 @@ async function session(user, deadline) {
   while (Date.now() < deadline) {
     if (user.role === "employee") {
       await call(user, "GET /api/wallet", "GET", "/api/wallet");
-      if (tick === 1) await call(user, "POST /api/clock-out", "POST", "/api/clock-out", { time: "18:05" }, [200, 409]);
+      if (tick === 1) await call(user, "POST /api/clock-out", "POST", "/api/clock-out", {}, [200, 409]);
       if (tick === 2) await call(user, "POST /api/redeem", "POST", "/api/redeem", { rewardId: "coffee" }, [200, 409]);
     } else if (user.role === "cashier") {
       await call(user, "GET /api/vouchers/:code", "GET", "/api/vouchers/WQ-0000");
