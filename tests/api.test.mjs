@@ -2,18 +2,34 @@ import { test, before, beforeEach, after } from "node:test";
 import assert from "node:assert/strict";
 import { DEMO_PASSWORD } from "../src/lib/demo-accounts.ts";
 
-// The server must run with WORKDAY_TEST_CLOCK=1 so these tests can move its clock.
+// Start the server with WORKDAY_TEST_CLOCK=1 (so tests can move its clock) and TRUSTED_PROXY=cloudflare
+// (so each test client can say which network it is on, the way Cloudflare's CF-Connecting-IP header would).
 // Every test runs on Wednesday 11 November 2026; the fictional history fills the working days before it.
 const BASE = process.env.BASE_URL ?? "http://localhost:3000";
 const TEST_DAY = "2026-11-11";
 
+// Documentation-only address ranges (RFC 5737 / RFC 3849), never real networks.
+const OFFICE_RANGE = "203.0.113.0/24";
+const OFFICE_IP = "203.0.113.10";
+const HOME_IP = "198.51.100.7";
+
 class Client {
   cookie = "";
+
+  // Which network this "phone" is on. null sends no CF-Connecting-IP at all.
+  constructor(ip = OFFICE_IP) {
+    this.ip = ip;
+  }
 
   async call(method, path, body, headers = {}) {
     const response = await fetch(BASE + path, {
       method,
-      headers: { "Content-Type": "application/json", ...(this.cookie ? { Cookie: this.cookie } : {}), ...headers },
+      headers: {
+        "Content-Type": "application/json",
+        ...(this.cookie ? { Cookie: this.cookie } : {}),
+        ...(this.ip ? { "CF-Connecting-IP": this.ip } : {}),
+        ...headers,
+      },
       body: body === undefined ? undefined : JSON.stringify(body),
     });
     const setCookie = response.headers.getSetCookie().find((value) => value.startsWith("wq_session="));
@@ -31,12 +47,23 @@ class Client {
   }
 
   wallet = async () => (await this.call("GET", "/api/wallet")).data;
-  // The server decides the time, so "clock out at 18:05" means: move the server clock to 18:05, then clock out.
+  // The server decides the time, so "clock in at 08:55" means: move the server clock to 08:55, then clock in.
+  clockIn = async (time) => {
+    if (time) await setClock(time);
+    return this.call("POST", "/api/clock-in", {});
+  };
   clockOut = async (time) => {
-    await setClock(time);
+    if (time) await setClock(time);
     return this.call("POST", "/api/clock-out", {});
   };
   redeem = () => this.call("POST", "/api/redeem", { rewardId: "coffee" });
+
+  // The same signed-in person on another network, e.g. Alex at home.
+  on(ip) {
+    const twin = new Client(ip);
+    twin.cookie = this.cookie;
+    return twin;
+  }
 }
 
 let admin, alex, sarah, cashier;
@@ -51,18 +78,35 @@ async function resetAt(time = "12:00") {
   await admin.call("POST", "/api/reset");
 }
 
+// A normal morning: everyone clocks in from the office through the app.
+async function freshDay() {
+  await resetAt();
+  for (const [client, time] of [[alex, "08:55"], [sarah, "09:03"], [admin, "08:58"]]) {
+    assert.equal((await client.clockIn(time)).status, 200, `clock-in at ${time}`);
+  }
+  await setClock("12:00");
+}
+
+const officeNetworkIds = async () =>
+  (await admin.call("GET", "/api/admin/attendance")).data.networks.filter((network) => network.label.startsWith("Test ")).map((network) => network.id);
+
 before(async () => {
   [admin, alex, sarah, cashier] = [new Client(), new Client(), new Client(), new Client()];
   await admin.login("admin@fado.demo");
   await alex.login("alex@fado.demo");
   await sarah.login("sarah@fado.demo");
   await cashier.login("cashier@fado.demo");
+  const attendance = (await admin.call("GET", "/api/admin/attendance")).data;
+  assert.equal(attendance.ipMode, "cloudflare", "start the server with TRUSTED_PROXY=cloudflare to run the API tests");
+  for (const id of await officeNetworkIds()) await admin.call("DELETE", `/api/admin/networks/${id}`);
+  assert.equal((await admin.call("POST", "/api/admin/networks", { label: "Test office", cidr: OFFICE_RANGE })).status, 200);
 });
 
-beforeEach(() => resetAt());
+beforeEach(() => freshDay());
 
-// Leave the server on real time with fresh demo data.
+// Leave the server on real time with fresh demo data and no test networks.
 after(async () => {
+  for (const id of await officeNetworkIds()) await admin.call("DELETE", `/api/admin/networks/${id}`);
   await setClock(null);
   await admin.call("POST", "/api/reset");
 });
@@ -247,6 +291,10 @@ test("roles are enforced: nobody can use another role's endpoints", async () => 
     [cashier, "POST", "/api/redeem", "/cashier"],
     [cashier, "GET", "/api/admin/overview", "/cashier"],
     [cashier, "POST", "/api/clock-out", "/cashier"],
+    [cashier, "POST", "/api/clock-in", "/cashier"],
+    [alex, "GET", "/api/admin/attendance", "/"],
+    [alex, "POST", "/api/admin/networks", "/"],
+    [alex, "DELETE", "/api/admin/networks/1", "/"],
     [admin, "GET", `/api/vouchers/${data.code}`, "/"],
     [admin, "POST", `/api/vouchers/${data.code}/consume`, "/"],
   ];
@@ -288,7 +336,7 @@ test("clock-out inside the Perfect Day window awards 2 credits exactly once", as
 
 test("clock-out boundaries: 18:00 and 18:10 qualify, 17:59 and 18:11 do not", async () => {
   for (const [time, expected] of [["18:00", true], ["18:10", true], ["17:59", false], ["18:11", false], ["18:30", false]]) {
-    await resetAt();
+    await freshDay();
     assert.equal((await alex.clockOut(time)).data.qualifies, expected, `clock-out at ${time}`);
     const state = await alex.wallet();
     assert.equal(state.balance, expected ? 40 : 38, `balance after ${time}`);
@@ -425,4 +473,122 @@ test("five failed logins lock the email out for a while", async () => {
     assert.equal((await client.call("POST", "/api/auth/login", { email, password: "wrong" })).status, 401);
   }
   assert.equal((await client.call("POST", "/api/auth/login", { email, password: "wrong" })).status, 429);
+});
+
+// ---- Clock-in and the office network check ----
+
+const attendance = async () => (await admin.call("GET", "/api/admin/attendance")).data;
+
+test("clocking in from the office records the server's time and the office as the place", async () => {
+  await resetAt();
+  const before = await alex.wallet();
+  assert.deepEqual([before.clockIn, before.location.verdict, before.location.network], [null, "office", "Test office"]);
+
+  const result = await alex.clockIn("08:54");
+  assert.equal(result.status, 200);
+  assert.deepEqual([result.data.time, result.data.mode, result.data.arrival, result.data.alreadyClockedIn], ["08:54", "office", "on_time", false]);
+  const after = await alex.wallet();
+  assert.deepEqual([after.clockIn, after.clockInMode, after.arrival], ["08:54", "office", "on_time"]);
+});
+
+test("clocking in from outside the office is refused, logged, and changes nothing", async () => {
+  await resetAt();
+  const home = alex.on(HOME_IP);
+  assert.equal((await home.wallet()).location.verdict, "blocked");
+
+  const result = await home.clockIn("08:55");
+  assert.equal(result.status, 403);
+  assert.deepEqual(result.data, { ok: false, error: "not_office_network", ip: HOME_IP });
+  assert.equal((await alex.wallet()).clockIn, null, "no clock-in was recorded");
+
+  const [latest] = (await attendance()).attempts;
+  assert.deepEqual([latest.name, latest.kind, latest.accepted, latest.reason, latest.ip], ["Alex Morgan", "clock_in", false, "not_office_network", HOME_IP]);
+});
+
+test("someone allowed to work remotely is recorded as remote instead of refused", async () => {
+  await resetAt();
+  const home = sarah.on(HOME_IP);
+  assert.equal((await home.wallet()).location.verdict, "remote");
+  const result = await home.clockIn("08:57");
+  assert.deepEqual([result.status, result.data.mode], [200, "remote"]);
+  assert.equal((await sarah.wallet()).clockInMode, "remote");
+  assert.equal((await attendance()).attempts[0].reason, "ok_remote");
+});
+
+test("a faked X-Forwarded-For can't pretend to be the office", async () => {
+  await resetAt();
+  const noCloudflareHeader = alex.on(null);
+  const spoofed = await noCloudflareHeader.call("POST", "/api/clock-in", {}, { "X-Forwarded-For": OFFICE_IP });
+  assert.deepEqual([spoofed.status, spoofed.data.error], [403, "no_client_ip"]);
+
+  const fromHome = await alex.on(HOME_IP).call("POST", "/api/clock-in", {}, { "X-Forwarded-For": OFFICE_IP });
+  assert.deepEqual([fromHome.status, fromHome.data.error], [403, "not_office_network"], "only CF-Connecting-IP counts");
+  assert.equal((await alex.wallet()).clockIn, null);
+});
+
+test("clock-out is checked too: leaving early and clocking out from home doesn't work", async () => {
+  const result = await alex.on(HOME_IP).clockOut("18:05");
+  assert.deepEqual([result.status, result.data.error], [403, "not_office_network"]);
+  const state = await alex.wallet();
+  assert.deepEqual([state.clockedOut, state.balance], [false, 38], "no clock-out, no Perfect Day credit");
+  assert.equal((await alex.clockOut("18:05")).data.qualifies, true, "the same clock-out from the office works");
+});
+
+test("a second clock-in keeps the first time", async () => {
+  const again = await alex.clockIn("10:30");
+  assert.deepEqual([again.status, again.data.alreadyClockedIn, again.data.time], [200, true, "08:55"]);
+  assert.equal((await alex.wallet()).clockIn, "08:55");
+  assert.equal((await attendance()).attempts[0].reason, "already_clocked_in");
+});
+
+test("ten taps at once still record exactly one clock-in", async () => {
+  await resetAt("08:56");
+  const results = await Promise.all(Array.from({ length: 10 }, () => alex.call("POST", "/api/clock-in", {})));
+  assert.deepEqual(results.map((r) => r.status), Array(10).fill(200));
+  assert.equal(results.filter((r) => r.data.alreadyClockedIn === false).length, 1);
+  assert.equal((await alex.wallet()).clockIn, "08:56");
+});
+
+test("clocking out without a clock-in is refused", async () => {
+  await resetAt("18:05");
+  const result = await alex.clockOut();
+  assert.deepEqual([result.status, result.data.error], [409, "no_clock_in"]);
+});
+
+test("an IPv6 office network covers every device on its /64", async () => {
+  await resetAt();
+  const adminOnV6 = admin.on("2001:db8:aa:bb:1111:2222:3333:4444");
+  const added = await adminOnV6.call("POST", "/api/admin/networks", { label: "Test office IPv6", current: true });
+  assert.deepEqual([added.status, added.data.cidr], [200, "2001:db8:aa:bb::/64"]);
+
+  const result = await alex.on("2001:db8:aa:bb:9999:8888:7777:6666").clockIn("08:59");
+  assert.deepEqual([result.status, result.data.mode], [200, "office"]);
+  assert.equal((await alex.on("2001:db8:aa:cc::1").call("POST", "/api/clock-out", {})).status, 403, "a different /64 is not the office");
+});
+
+test("office networks: validation, duplicates and removal", async () => {
+  const add = (body) => admin.call("POST", "/api/admin/networks", body);
+  assert.deepEqual([(await add({ label: "Test bad", cidr: "203.0.113.0/33" })).data.error], ["invalid_range"]);
+  assert.deepEqual([(await add({ label: "", cidr: "192.0.2.0/24" })).data.error], ["invalid_label"]);
+  assert.equal((await add({ label: "Test dup", cidr: "203.0.113.99/24" })).status, 409, "same range once host bits are cleared");
+
+  const { data } = await add({ label: "Test branch", cidr: "192.0.2.0/24" });
+  assert.equal(data.cidr, "192.0.2.0/24");
+  const branch = (await attendance()).networks.find((network) => network.cidr === "192.0.2.0/24");
+  assert.equal(branch.addedBy, "Daniel Lee");
+  assert.equal((await admin.call("DELETE", `/api/admin/networks/${branch.id}`)).status, 200);
+  assert.equal((await admin.call("DELETE", `/api/admin/networks/${branch.id}`)).status, 404);
+});
+
+test("the admin sees their own connection and the newest attempts first", async () => {
+  const data = await attendance();
+  assert.deepEqual(data.you, { ip: OFFICE_IP, network: `${OFFICE_IP}/32` });
+  const names = data.attempts.slice(0, 3).map((attempt) => attempt.name);
+  assert.deepEqual(names, ["Daniel Lee", "Sarah Chen", "Alex Morgan"], "this morning's clock-ins, newest first");
+  assert.ok(data.attempts.every((attempt) => attempt.accepted));
+});
+
+test("resetting the demo keeps the office networks", async () => {
+  await admin.call("POST", "/api/reset");
+  assert.ok((await attendance()).networks.some((network) => network.cidr === OFFICE_RANGE));
 });

@@ -5,7 +5,7 @@ import { DEMO_ACCOUNTS, DEMO_PASSWORD } from "../demo-accounts";
 import { formatShort } from "../history";
 import { evaluatePerfectDay, PERFECT_DAY_CREDITS } from "../perfect-day";
 import { MILESTONE_TARGETS, milestoneCredits, milestoneTitle } from "../progress";
-import { isWeekday, nextWorkday, previousWorkdays, shiftDate, today } from "./clock";
+import { nextWorkday, previousWorkdays, shiftDate, today } from "./clock";
 import { hashPassword } from "./password";
 
 const DB_PATH = process.env.WORKDAY_DB ?? path.join(/* turbopackIgnore: true */ process.cwd(), "data", "workday.db");
@@ -17,7 +17,8 @@ CREATE TABLE IF NOT EXISTS employees (
   department TEXT NOT NULL,
   role TEXT NOT NULL,
   shift_start TEXT NOT NULL,
-  shift_end TEXT NOT NULL
+  shift_end TEXT NOT NULL,
+  remote_allowed INTEGER NOT NULL DEFAULT 0 CHECK (remote_allowed IN (0, 1))
 );
 CREATE TABLE IF NOT EXISTS attendance_events (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -25,8 +26,29 @@ CREATE TABLE IF NOT EXISTS attendance_events (
   employee_id TEXT NOT NULL REFERENCES employees(id),
   kind TEXT NOT NULL CHECK (kind IN ('clock_in', 'clock_out')),
   work_date TEXT NOT NULL,
-  at_time TEXT NOT NULL
+  at_time TEXT NOT NULL,
+  source TEXT NOT NULL CHECK (source IN ('seed', 'office', 'remote', 'admin_correction')),
+  ip TEXT,
+  user_agent TEXT
 );
+CREATE TABLE IF NOT EXISTS office_networks (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  cidr TEXT NOT NULL UNIQUE,
+  label TEXT NOT NULL,
+  added_at TEXT NOT NULL,
+  added_by TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS clock_attempts (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  employee_id TEXT NOT NULL REFERENCES employees(id),
+  kind TEXT NOT NULL CHECK (kind IN ('clock_in', 'clock_out')),
+  at TEXT NOT NULL,
+  ip TEXT,
+  user_agent TEXT,
+  accepted INTEGER NOT NULL CHECK (accepted IN (0, 1)),
+  reason TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS clock_attempts_recent ON clock_attempts (id DESC);
 CREATE TABLE IF NOT EXISTS credit_transactions (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   employee_id TEXT NOT NULL REFERENCES employees(id),
@@ -93,7 +115,7 @@ CREATE TABLE IF NOT EXISTS leave_requests (
 `;
 
 // Columns ending in _at hold "YYYY-MM-DD HH:MM" in Vietnam time; labels like "Today · 09:40" are built when read.
-const SCHEMA_VERSION = 6;
+const SCHEMA_VERSION = 7;
 const SCHEMA_KEY = `${SCHEMA_VERSION}:${SCHEMA}`;
 
 const TABLES_IN_DELETE_ORDER = [
@@ -101,6 +123,7 @@ const TABLES_IN_DELETE_ORDER = [
   "leave_requests",
   "redemptions",
   "credit_transactions",
+  "clock_attempts",
   "attendance_events",
   "rewards",
   "employees",
@@ -147,21 +170,19 @@ const ATTENDANCE_HISTORY: Record<string, DayScript[]> = {
   ],
 };
 
-// Today's arrivals. Seeded until the app's own clock-in button exists.
-const TODAY_CLOCK_IN: Record<string, string> = { EMP001: "08:55", EMP002: "09:03", EMP003: "08:58" };
-
 function seed(db: DatabaseSync) {
   const todayDate = today();
   const daysAgo = (days: number) => shiftDate(todayDate, -days);
   const workdays = previousWorkdays(todayDate, HISTORY_DAYS);
 
-  const employee = db.prepare("INSERT INTO employees (id, name, department, role, shift_start, shift_end) VALUES (?, ?, ?, ?, '09:00', '18:00')");
-  employee.run("EMP001", "Alex Morgan", "Marketing", "Employee");
-  employee.run("EMP002", "Sarah Chen", "IT", "Employee");
-  employee.run("EMP003", "Daniel Lee", "HR", "Manager");
-  employee.run("EMP006", "Minh Tran", "Marketing", "Employee");
+  // Today starts empty: everyone clocks in through the app.
+  const employee = db.prepare("INSERT INTO employees (id, name, department, role, shift_start, shift_end, remote_allowed) VALUES (?, ?, ?, ?, '09:00', '18:00', ?)");
+  employee.run("EMP001", "Alex Morgan", "Marketing", "Employee", 0);
+  employee.run("EMP002", "Sarah Chen", "IT", "Employee", 1);
+  employee.run("EMP003", "Daniel Lee", "HR", "Manager", 0);
+  employee.run("EMP006", "Minh Tran", "Marketing", "Employee", 0);
 
-  const event = db.prepare("INSERT INTO attendance_events (ext_id, employee_id, kind, work_date, at_time) VALUES (?, ?, ?, ?, ?)");
+  const event = db.prepare("INSERT INTO attendance_events (ext_id, employee_id, kind, work_date, at_time, source) VALUES (?, ?, ?, ?, ?, 'seed')");
   const credit = db.prepare("INSERT INTO credit_transactions (employee_id, amount, type, title, occurred_on, occurred_time, source_ref, actor) VALUES (?, ?, ?, ?, ?, ?, ?, 'system')");
   const dayOff = db.prepare("INSERT INTO days_off (employee_id, date, kind, note) VALUES (?, ?, ?, ?)");
   const shift = { start: "09:00", end: "18:00" };
@@ -193,12 +214,6 @@ function seed(db: DatabaseSync) {
         credit.run(employeeId, milestoneCredits(perfectDays), "milestone", milestoneTitle(perfectDays), date, day.out, `milestone:${employeeId}:${month}:pd-${perfectDays}`);
       }
     });
-  }
-
-  if (isWeekday(todayDate)) {
-    for (const [employeeId, time] of Object.entries(TODAY_CLOCK_IN)) {
-      event.run(`seed:${employeeId}:${todayDate}:in`, employeeId, "clock_in", todayDate, time);
-    }
   }
 
   credit.run("EMP001", 2, "perfect_day", "Perfect Day bonus", daysAgo(21), "18:04", "seed:EMP001:perfect-day-1");
@@ -238,6 +253,15 @@ function seedUsers(db: DatabaseSync) {
   }
 }
 
+// The computer running the app counts as "office" out of the box, so the local demo works without setup.
+// Real office networks are added by an admin. "Reset demo" never touches this list.
+function seedOfficeNetworks(db: DatabaseSync) {
+  const insert = db.prepare("INSERT INTO office_networks (cidr, label, added_at, added_by) VALUES (?, ?, ?, 'system')");
+  const at = `${today()} 00:00`;
+  insert.run("127.0.0.1/32", "This computer (local demo)", at);
+  insert.run("::1/128", "This computer (local demo, IPv6)", at);
+}
+
 function clearBusinessData(db: DatabaseSync) {
   for (const table of TABLES_IN_DELETE_ORDER) db.exec(`DELETE FROM ${table}`);
   db.exec("DELETE FROM sqlite_sequence");
@@ -267,6 +291,7 @@ export function getDb() {
     try {
       if (!db.prepare("SELECT 1 AS found FROM employees LIMIT 1").get()) seed(db);
       if (!db.prepare("SELECT 1 AS found FROM users LIMIT 1").get()) seedUsers(db);
+      if (migrating) seedOfficeNetworks(db);
       db.exec("COMMIT");
     } catch (error) {
       db.exec("ROLLBACK");

@@ -1,6 +1,7 @@
 "use client";
 
 import { AppRail } from "@/components/app-rail";
+import { ClockInDesk } from "@/components/clock-in-desk";
 import { SignOutButton } from "@/components/sign-out-button";
 import { decideLeave, useAdminOverview } from "@/lib/admin";
 import { formatWeekday } from "@/lib/history";
@@ -34,6 +35,8 @@ export default function AdminPage() {
           <div className="admin-stat"><strong>{stats.vouchersIssued}</strong><span>Vouchers issued</span></div>
           <div className="admin-stat"><strong>{stats.creditsRedeemed}</strong><span>Credits redeemed</span></div>
         </div>
+
+        <ClockInDesk />
 
         <section className="admin-section" aria-labelledby="leave-heading">
           <div className="admin-section-head">

@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from "react";
-import { createPolledStore, post } from "./api";
+import { createPolledStore, post, remove } from "./api";
 
 export type LeaveRequest = {
   id: string;
@@ -50,4 +50,60 @@ export function useAdminOverview() {
 
 export function decideLeave(id: string, decision: "approved" | "rejected") {
   return post(`/api/admin/leave/${encodeURIComponent(id)}`, { decision });
+}
+
+export type OfficeNetwork = { id: number; cidr: string; label: string; addedAt: string; addedBy: string };
+
+export type AttemptReason =
+  | "ok_office"
+  | "ok_remote"
+  | "not_office_network"
+  | "no_client_ip"
+  | "already_clocked_in"
+  | "already_clocked_out"
+  | "no_clock_in";
+
+export type ClockAttempt = {
+  id: number;
+  kind: "clock_in" | "clock_out";
+  at: string;
+  ip: string | null;
+  userAgent: string | null;
+  accepted: boolean;
+  reason: AttemptReason;
+  name: string;
+  employeeId: string;
+};
+
+export type AdminAttendance = {
+  loaded: boolean;
+  today: string;
+  ipMode: "cloudflare" | "local-demo" | null;
+  you: { ip: string | null; network: string | null };
+  networks: OfficeNetwork[];
+  attempts: ClockAttempt[];
+};
+
+const attendanceStore = createPolledStore<AdminAttendance>("/api/admin/attendance", {
+  loaded: false,
+  today: "",
+  ipMode: "local-demo",
+  you: { ip: null, network: null },
+  networks: [],
+  attempts: [],
+});
+
+export function useAdminAttendance() {
+  return useSyncExternalStore(attendanceStore.subscribe, attendanceStore.getSnapshot, () => attendanceStore.initial);
+}
+
+export type NetworkError = "invalid_range" | "invalid_label" | "duplicate" | "no_client_ip";
+
+export async function addNetwork(input: { label: string; cidr: string } | { label: string; current: true }) {
+  const { ok, data } = await post<{ error?: NetworkError }>("/api/admin/networks", input);
+  return ok ? null : (data.error ?? "invalid_range");
+}
+
+export function removeNetwork(id: number) {
+  return remove(`/api/admin/networks/${id}`);
 }

@@ -9,7 +9,7 @@ import { weekdayIndex } from "@/lib/progress";
 import { useProgress } from "@/lib/progress-store";
 import { useMe } from "@/lib/session";
 import { nextRewardTarget } from "@/lib/reward-target";
-import { clockOut, useWallet } from "@/lib/wallet";
+import { clockIn, clockOut, useWallet, type Location, type PunchError } from "@/lib/wallet";
 
 const WEEKDAY_LETTERS = ["M", "T", "W", "T", "F"];
 
@@ -25,10 +25,20 @@ function greeting(time: string) {
   return "Good evening";
 }
 
-// Leaving before the shift ends is allowed but costs the Perfect Day, so it takes a second tap.
-function useClockOut(shiftEnd: string, now: string) {
+function refusalMessage(error: PunchError, ip: string | null) {
+  if (error === "not_office_network") {
+    return `You don't seem to be on the office network${ip ? ` (your connection shows up as ${ip})` : ""}. Connect to the office Wi-Fi. If you're using a VPN, turn it off and try again.`;
+  }
+  if (error === "no_client_ip") return "We couldn't tell which network you're on. Please let HR know so they can check the app's setup.";
+  if (error === "no_clock_in") return "There's no clock-in for today to close.";
+  return "Couldn't reach the server. Check your connection and try again.";
+}
+
+// One button: clock in, then clock out. Leaving before the shift ends costs the Perfect Day, so it takes a second tap.
+function usePunch(clockedIn: boolean, shiftEnd: string, now: string) {
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [refusal, setRefusal] = useState<string | null>(null);
   const early = now !== "" && now < shiftEnd;
 
   useEffect(() => {
@@ -38,20 +48,29 @@ function useClockOut(shiftEnd: string, now: string) {
   }, [confirming]);
 
   async function press() {
-    if (early && !confirming) {
+    if (clockedIn && early && !confirming) {
       setConfirming(true);
       return;
     }
     setConfirming(false);
+    setRefusal(null);
     setBusy(true);
     try {
-      await clockOut();
+      const result = await (clockedIn ? clockOut() : clockIn());
+      if (!result.ok) setRefusal(refusalMessage(result.error, result.ip));
     } finally {
       setBusy(false);
     }
   }
 
-  return { press, confirming, busy, early };
+  return { press, confirming, busy, early, refusal };
+}
+
+function LocationNote({ location, clockedOut }: { location: Location; clockedOut: boolean }) {
+  if (clockedOut) return null;
+  if (location.verdict === "office") return <p className="location-note ok"><span /> On the office network{location.network ? ` · ${location.network}` : ""}</p>;
+  if (location.verdict === "remote") return <p className="location-note remote"><span /> Outside the office · will be recorded as remote work</p>;
+  return <p className="location-note blocked"><span /> Not on the office network{location.ip ? ` · ${location.ip}` : ""}</p>;
 }
 
 export default function Home() {
@@ -68,16 +87,19 @@ export default function Home() {
   const recent = ledger.slice(0, showPending ? 3 : 4);
 
   const clockedIn = !!state.clockIn;
-  const punch = useClockOut(state.shift.end, state.now);
+  const punch = usePunch(clockedIn, state.shift.end, state.now);
   const onTrack = state.arrival === "on_time";
-  const arrivalNote = !clockedIn ? "Not yet" : onTrack ? "Right on time" : state.arrival === "late" ? `After ${state.shift.start}` : "Before the Perfect Day window";
+  const arrivalText = onTrack ? "Right on time" : state.arrival === "late" ? `After ${state.shift.start}` : "Before the Perfect Day window";
+  const arrivalNote = !clockedIn ? "Not yet" : state.clockInMode === "remote" ? `Remote · ${arrivalText}` : arrivalText;
   const heading = !clockedIn
     ? "Not clocked in yet."
     : clockedOut
       ? (state.perfectDay ? "A perfect day." : "Day complete.")
       : onTrack ? "You're on track." : "You're checked in.";
-  const footer = !clockedIn
-    ? `There's no clock-in for today yet. A Perfect Day starts with a clock-in ${state.window.clockIn}.`
+  const footer = punch.refusal
+    ? punch.refusal
+    : !clockedIn
+    ? `Clock in ${state.window.clockIn} to start a Perfect Day. Your attendance counts whenever you arrive.`
     : clockedOut
       ? state.perfectDay
         ? "Your attendance window qualified. 2 credits added to your wallet."
@@ -90,7 +112,7 @@ export default function Home() {
   const buttonLabel = clockedOut
     ? <><CheckIcon /> {state.perfectDay ? "2 credits earned" : "Attendance recorded"}</>
     : !clockedIn
-      ? <><ClockIcon /> Waiting for clock-in</>
+      ? <><ClockIcon /> {punch.busy ? "Clocking in…" : "Clock in"}</>
       : punch.confirming
         ? <><ClockIcon /> Tap again to leave early</>
         : <><ClockIcon /> {punch.early ? "Clock out early" : "Clock out"}</>;
@@ -140,11 +162,14 @@ export default function Home() {
           </div>
 
           <div className="punch-footer">
-            <p>{footer}</p>
+            <div>
+              <p className={punch.refusal ? "punch-refusal" : undefined} role={punch.refusal ? "alert" : undefined}>{footer}</p>
+              <LocationNote location={state.location} clockedOut={clockedOut} />
+            </div>
             <button
               className="clockout-button"
               onClick={punch.press}
-              disabled={clockedOut || !clockedIn || punch.busy}
+              disabled={clockedOut || punch.busy || !state.loaded}
             >
               {buttonLabel}
             </button>

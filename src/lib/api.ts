@@ -1,10 +1,12 @@
 const refreshers = new Set<() => Promise<void>>();
 
-async function redirectOnAuthFailure(response: Response) {
-  if (response.status !== 401 && response.status !== 403) return false;
-  const data = (await response.clone().json().catch(() => ({}))) as { home?: string };
-  const target = response.status === 401 ? "/login" : data.home;
-  if (target && window.location.pathname !== target) window.location.assign(target);
+// Signed out → login page; wrong role (a 403 that names your home) → your home page.
+// Any other 403, like a clock-in refused off the office network, is an ordinary answer for the caller to show.
+function redirectOnAuthFailure(status: number, data: unknown) {
+  const home = (data as { home?: unknown } | null)?.home;
+  const target = status === 401 ? "/login" : status === 403 && typeof home === "string" ? home : null;
+  if (!target) return false;
+  if (window.location.pathname !== target) window.location.assign(target);
   return true;
 }
 
@@ -19,9 +21,10 @@ export function createPolledStore<T>(url: string, initial: T, intervalMs = 2000)
     inFlight = true;
     try {
       const response = await fetch(url, { cache: "no-store" });
-      if (await redirectOnAuthFailure(response)) return;
+      const data = await response.json().catch(() => ({}));
+      if (redirectOnAuthFailure(response.status, data)) return;
       if (response.ok) {
-        const next = { ...(await response.json()), loaded: true } as T;
+        const next = { ...data, loaded: true } as T;
         if (JSON.stringify(next) !== JSON.stringify(snapshot)) {
           snapshot = next;
           listeners.forEach((notify) => notify());
@@ -56,14 +59,17 @@ export function createPolledStore<T>(url: string, initial: T, intervalMs = 2000)
   };
 }
 
-export async function post<T = Record<string, unknown>>(url: string, body?: unknown) {
+export const post = <T = Record<string, unknown>>(url: string, body?: unknown) => send<T>("POST", url, body);
+export const remove = <T = Record<string, unknown>>(url: string) => send<T>("DELETE", url);
+
+async function send<T>(method: "POST" | "DELETE", url: string, body?: unknown) {
   const response = await fetch(url, {
-    method: "POST",
+    method,
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body ?? {}),
+    body: method === "POST" ? JSON.stringify(body ?? {}) : undefined,
   });
   const data = (await response.json().catch(() => ({}))) as T;
-  if (await redirectOnAuthFailure(response)) return { ok: false, status: response.status, data };
+  if (redirectOnAuthFailure(response.status, data)) return { ok: false, status: response.status, data };
   await Promise.all([...refreshers].map((refresh) => refresh()));
   return { ok: response.ok, status: response.status, data };
 }

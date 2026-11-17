@@ -2,13 +2,18 @@ import { useSyncExternalStore } from "react";
 import { createPolledStore, post } from "./api";
 import type { HistoryEntry } from "./history";
 
+// Whether the network you're on right now counts as the office. Checked again by the server on every punch.
+export type Location = { ip: string | null; verdict: "office" | "remote" | "blocked"; network: string | null };
+
 export type WalletState = {
   loaded: boolean;
   today: string;
   now: string;
   clockedOut: boolean;
   clockIn: string | null;
+  clockInMode: "office" | "remote" | "seed" | "admin_correction" | null;
   clockOut: string | null;
+  location: Location;
   arrival: "on_time" | "late" | "early" | null;
   perfectDay: boolean;
   shift: { start: string; end: string };
@@ -26,7 +31,9 @@ const walletStore = createPolledStore<WalletState>("/api/wallet", {
   now: "",
   clockedOut: false,
   clockIn: null,
+  clockInMode: null,
   clockOut: null,
+  location: { ip: null, verdict: "office", network: null },
   arrival: null,
   perfectDay: false,
   shift: { start: "09:00", end: "18:00" },
@@ -43,9 +50,19 @@ export function useWallet() {
   return { state, balance: state.balance };
 }
 
-export function clockOut() {
-  return post("/api/clock-out");
+export type PunchError = "not_office_network" | "no_client_ip" | "no_clock_in" | "network_error";
+
+async function punch(url: string): Promise<{ ok: true } | { ok: false; error: PunchError; ip: string | null }> {
+  try {
+    const { ok, data } = await post<{ error?: PunchError; ip?: string | null }>(url);
+    return ok ? { ok: true } : { ok: false, error: data.error ?? "network_error", ip: data.ip ?? null };
+  } catch {
+    return { ok: false, error: "network_error", ip: null };
+  }
 }
+
+export const clockIn = () => punch("/api/clock-in");
+export const clockOut = () => punch("/api/clock-out");
 
 export function redeemCoffee() {
   return post("/api/redeem", { rewardId: "coffee" });

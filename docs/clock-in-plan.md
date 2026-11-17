@@ -1,6 +1,19 @@
 # Plan: real clock-in (office network check + passkey)
 
-Status: draft for review · 2026-11-17
+Status · 2026-11-17: phases 0–2 done on the `clock-in` branch. Next: phase 3 (passkeys).
+
+## Running it
+
+| Setting | What it does |
+|---|---|
+| `TRUSTED_PROXY=cloudflare` | **Real use.** The visitor IP comes only from Cloudflare's `CF-Connecting-IP`. Start the app bound to localhost (`next start -H 127.0.0.1`) so the tunnel is the only way in; otherwise someone on the same LAN could reach the port directly and send their own header. |
+| `TRUSTED_PROXY=local-demo` | Trying it on this PC or LAN. Reads `X-Forwarded-For`, which a browser can fake (Next.js only fills it in when it's missing). The admin page shows a warning banner in this mode. Default during `next dev`. |
+| unset in production | Every clock-in is refused with "couldn't read the IP". Fails closed on purpose. |
+| `WORKDAY_NOW=2026-11-11T08:55` | Freezes the clock for a demo. |
+| `WORKDAY_TEST_CLOCK=1` | Enables `/api/test/clock` (admin only) for the API tests. Never set this for real use. |
+
+API tests: start the server with `WORKDAY_TEST_CLOCK=1 TRUSTED_PROXY=cloudflare`, then `BASE_URL=… npm run test:api`.
+Only one `next dev` can run per folder, so when one is already running use `next build` + `next start -p 3100` for tests.
 
 ## Goal
 

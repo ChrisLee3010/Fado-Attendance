@@ -1,7 +1,10 @@
 import { getDb, inTransaction } from "./db";
+import { locate, recordAttempt, whereAmI, type AttemptReason, type PunchKind } from "./attendance";
+import type { ClientIp } from "./client-ip";
 import { now, stamp, today } from "./clock";
 import { formatStamp, type Category, type HistoryEntry } from "../history";
-import { classifyArrival, evaluatePerfectDay, PERFECT_DAY_CREDITS, perfectDayWindow, type Shift } from "../perfect-day";
+import { formatIp } from "../ip";
+import { classifyArrival, evaluatePerfectDay, PERFECT_DAY_CREDITS, perfectDayWindow, type Arrival, type Shift } from "../perfect-day";
 import {
   buildMonth,
   MILESTONE_TARGETS,
@@ -30,10 +33,10 @@ function balanceOf(employeeId: string) {
   return Number(row?.balance ?? 0);
 }
 
-export function getWallet(employeeId: string) {
+export function getWallet(employeeId: string, client: ClientIp) {
   const db = getDb();
   const { date: todayDate, time } = now();
-  const events = db.prepare("SELECT kind, at_time FROM attendance_events WHERE employee_id = ? AND work_date = ?").all(employeeId, todayDate);
+  const events = db.prepare("SELECT kind, at_time, source FROM attendance_events WHERE employee_id = ? AND work_date = ?").all(employeeId, todayDate);
   const clockIn = events.find((event) => event.kind === "clock_in");
   const out = events.find((event) => event.kind === "clock_out");
   const employee = db.prepare("SELECT shift_start, shift_end FROM employees WHERE id = ?").get(employeeId);
@@ -65,7 +68,9 @@ export function getWallet(employeeId: string) {
     now: time,
     clockedOut: !!out,
     clockIn: clockIn ? String(clockIn.at_time) : null,
+    clockInMode: clockIn ? String(clockIn.source) : null,
     clockOut: out ? String(out.at_time) : null,
+    location: whereAmI(employeeId, client),
     arrival: clockIn ? classifyArrival(shift, String(clockIn.at_time)) : null,
     perfectDay,
     shift,
@@ -142,29 +147,84 @@ export function getProgress(employeeId: string) {
   };
 }
 
-export type ClockOutResult =
-  | { ok: true; alreadyClockedOut: boolean; qualifies: boolean; reason: string; time: string }
-  | { ok: false; error: "no_clock_in" };
+export type Punch = { client: ClientIp; userAgent: string | null };
+type Blocked = { ok: false; error: "not_office_network" | "no_client_ip"; ip: string | null };
 
-// The time always comes from the server's clock, never from the browser.
-export function clockOut(employeeId: string): ClockOutResult {
+function insertPunch(db: Db, employeeId: string, kind: PunchKind, date: string, time: string, mode: "office" | "remote", punch: Punch) {
+  db.prepare("INSERT INTO attendance_events (ext_id, employee_id, kind, work_date, at_time, source, ip, user_agent) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
+    .run(`app:${employeeId}:${date}:${kind === "clock_in" ? "in" : "out"}`, employeeId, kind, date, time, mode, punch.client.ip ? formatIp(punch.client.ip) : null, punch.userAgent);
+}
+
+export type PunchSource = "office" | "remote" | "seed" | "admin_correction";
+
+export type ClockInResult =
+  | { ok: true; alreadyClockedIn: boolean; time: string; mode: PunchSource; arrival: Arrival }
+  | Blocked;
+
+// Every attempt is logged, accepted or not, so the admin can see why someone couldn't clock in.
+export function clockIn(employeeId: string, punch: Punch): ClockInResult {
   return inTransaction((db) => {
     const { date: todayDate, time } = now();
+    const log = (accepted: boolean, reason: AttemptReason) => recordAttempt(db, { employeeId, kind: "clock_in", client: punch.client, userAgent: punch.userAgent, accepted, reason });
+    const where = locate(db, employeeId, punch.client);
+    if (where.verdict === "blocked") {
+      log(false, where.reason);
+      return { ok: false, error: where.reason, ip: punch.client.ip ? formatIp(punch.client.ip) : null } as const;
+    }
+
+    const shift = shiftOf(db, employeeId);
+    const existing = db.prepare("SELECT at_time, source FROM attendance_events WHERE employee_id = ? AND work_date = ? AND kind = 'clock_in'").get(employeeId, todayDate);
+    if (existing) {
+      log(true, "already_clocked_in");
+      const at = String(existing.at_time);
+      return { ok: true, alreadyClockedIn: true, time: at, mode: String(existing.source) as PunchSource, arrival: classifyArrival(shift, at) } as const;
+    }
+
+    insertPunch(db, employeeId, "clock_in", todayDate, time, where.verdict, punch);
+    log(true, where.verdict === "office" ? "ok_office" : "ok_remote");
+    return { ok: true, alreadyClockedIn: false, time, mode: where.verdict, arrival: classifyArrival(shift, time) } as const;
+  });
+}
+
+export type ClockOutResult =
+  | { ok: true; alreadyClockedOut: boolean; qualifies: boolean; reason: string; time: string }
+  | { ok: false; error: "no_clock_in"; ip: string | null }
+  | Blocked;
+
+// Clock-out gets the same network check: otherwise you could leave at 17:00 and clock out from home at 18:05.
+// The time always comes from the server's clock, never from the browser.
+export function clockOut(employeeId: string, punch: Punch): ClockOutResult {
+  return inTransaction((db) => {
+    const { date: todayDate, time } = now();
+    const log = (accepted: boolean, reason: AttemptReason) => recordAttempt(db, { employeeId, kind: "clock_out", client: punch.client, userAgent: punch.userAgent, accepted, reason });
+    const ip = punch.client.ip ? formatIp(punch.client.ip) : null;
+    const where = locate(db, employeeId, punch.client);
+    if (where.verdict === "blocked") {
+      log(false, where.reason);
+      return { ok: false, error: where.reason, ip } as const;
+    }
+
     const employee = db.prepare("SELECT shift_start, shift_end FROM employees WHERE id = ?").get(employeeId);
-    const clockIn = db.prepare("SELECT at_time FROM attendance_events WHERE employee_id = ? AND work_date = ? AND kind = 'clock_in'").get(employeeId, todayDate);
-    if (!employee || !clockIn) return { ok: false, error: "no_clock_in" } as const;
+    const clockInRow = db.prepare("SELECT at_time FROM attendance_events WHERE employee_id = ? AND work_date = ? AND kind = 'clock_in'").get(employeeId, todayDate);
+    if (!employee || !clockInRow) {
+      log(false, "no_clock_in");
+      return { ok: false, error: "no_clock_in", ip } as const;
+    }
 
     const existing = db.prepare("SELECT at_time FROM attendance_events WHERE employee_id = ? AND work_date = ? AND kind = 'clock_out'").get(employeeId, todayDate);
-    if (existing) return { ok: true, alreadyClockedOut: true, qualifies: false, reason: "already_clocked_out", time: String(existing.at_time) } as const;
+    if (existing) {
+      log(true, "already_clocked_out");
+      return { ok: true, alreadyClockedOut: true, qualifies: false, reason: "already_clocked_out", time: String(existing.at_time) } as const;
+    }
 
     const result = evaluatePerfectDay(
       { start: String(employee.shift_start), end: String(employee.shift_end) },
-      String(clockIn.at_time),
+      String(clockInRow.at_time),
       time,
     );
 
-    db.prepare("INSERT INTO attendance_events (ext_id, employee_id, kind, work_date, at_time) VALUES (?, ?, 'clock_out', ?, ?)")
-      .run(`app:${employeeId}:${todayDate}:out`, employeeId, todayDate, time);
+    insertPunch(db, employeeId, "clock_out", todayDate, time, where.verdict, punch);
+    log(true, where.verdict === "office" ? "ok_office" : "ok_remote");
 
     if (result.qualifies) {
       db.prepare("INSERT INTO credit_transactions (employee_id, amount, type, title, occurred_on, occurred_time, source_ref, actor) VALUES (?, ?, 'perfect_day', 'Perfect Day bonus', ?, ?, ?, 'system')")
