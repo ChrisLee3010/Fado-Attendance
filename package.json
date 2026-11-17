@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:unit": "node --test tests/history.test.mjs tests/progress.test.mjs",
+    "test:api": "node --test tests/api.test.mjs",
+    "test:load": "node tests/load.mjs"
   },
   "dependencies": {
     "next": "16.4.6",
