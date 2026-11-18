@@ -298,6 +298,10 @@ test("roles are enforced: nobody can use another role's endpoints", async () => 
     [alex, "GET", "/api/admin/attendance", "/"],
     [alex, "POST", "/api/admin/networks", "/"],
     [alex, "DELETE", "/api/admin/networks/1", "/"],
+    [alex, "GET", "/api/admin/attendance/today", "/"],
+    [alex, "GET", "/api/admin/attendance/month", "/"],
+    [alex, "POST", "/api/admin/attendance/corrections", "/"],
+    [cashier, "GET", "/api/admin/attendance/today", "/cashier"],
     [admin, "GET", `/api/vouchers/${data.code}`, "/"],
     [admin, "POST", `/api/vouchers/${data.code}/consume`, "/"],
   ];
@@ -594,4 +598,138 @@ test("the admin sees their own connection and the newest attempts first", async 
 test("resetting the demo keeps the office networks", async () => {
   await admin.call("POST", "/api/reset");
   assert.ok((await attendance()).networks.some((network) => network.cidr === OFFICE_RANGE));
+});
+
+// ---- HR attendance view ----
+
+const board = async () => (await admin.call("GET", "/api/admin/attendance/today")).data;
+const monthReport = async (month) => (await admin.call("GET", `/api/admin/attendance/month${month ? `?month=${month}` : ""}`)).data;
+const rowOf = (rows, name) => rows.find((row) => row.name === name);
+const correct = (body) => admin.call("POST", "/api/admin/attendance/corrections", { reason: "Forgot to punch, confirmed by team lead", ...body });
+
+test("today: who's in, who's late and by how much, and who hasn't arrived", async () => {
+  const today = await board();
+  assert.deepEqual([today.today, today.now, today.scheduled], [TEST_DAY, "12:00", true]);
+  const [alexRow, sarahRow, danielRow, minhRow] = ["Alex Morgan", "Sarah Chen", "Daniel Lee", "Minh Tran"].map((name) => rowOf(today.rows, name));
+  assert.deepEqual([alexRow.status, alexRow.clockIn, alexRow.lateMinutes], ["working", "08:55", 0]);
+  assert.deepEqual([sarahRow.status, sarahRow.lateMinutes], ["working", 3]);
+  assert.deepEqual([danielRow.status, danielRow.lateMinutes], ["working", 0]);
+  assert.deepEqual([minhRow.status, minhRow.minutesSinceStart], ["not_in", 180]);
+  assert.deepEqual(today.counts, { present: 3, remote: 0, late: 1, notIn: 1, notYet: 0, onLeave: 0 });
+});
+
+test("today: before the shift starts, nobody is 'not in' yet", async () => {
+  await resetAt("08:30");
+  const today = await board();
+  assert.ok(today.rows.every((row) => row.status === "not_yet"));
+  assert.equal(today.counts.notIn, 0);
+});
+
+test("today: clocking out early shows how early", async () => {
+  await alex.clockOut("17:20");
+  const alexRow = rowOf((await board()).rows, "Alex Morgan");
+  assert.deepEqual([alexRow.status, alexRow.clockOut, alexRow.earlyMinutes], ["left", "17:20", 40]);
+});
+
+test("month: per-person totals match what each employee sees on their own Progress page", async () => {
+  const report = await monthReport();
+  assert.deepEqual([report.month, report.previous, report.next], ["2026-11", "2026-10", null]);
+  const pick = (row) => ({ scheduled: row.scheduled, attended: row.attended, lateDays: row.lateDays, lateMinutes: row.lateMinutes, absent: row.absent, leave: row.leave, leftEarly: row.leftEarly, perfectDays: row.perfectDays });
+  assert.deepEqual(pick(rowOf(report.rows, "Alex Morgan")), { scheduled: 8, attended: 8, lateDays: 1, lateMinutes: 6, absent: 0, leave: 0, leftEarly: 0, perfectDays: 6 });
+  assert.deepEqual(pick(rowOf(report.rows, "Sarah Chen")), { scheduled: 7, attended: 6, lateDays: 1, lateMinutes: 3, absent: 1, leave: 1, leftEarly: 1, perfectDays: 4 });
+  assert.deepEqual(pick(rowOf(report.rows, "Minh Tran")), { scheduled: 8, attended: 6, lateDays: 1, lateMinutes: 15, absent: 1, leave: 0, leftEarly: 0, perfectDays: 5 });
+
+  const own = (await alex.call("GET", "/api/progress")).data.stats;
+  assert.deepEqual([own.perfectDays, own.attended], [6, 8], "same numbers as Alex's own page");
+});
+
+test("month: later in the month, the demo history covers every working day (no bogus absences)", async () => {
+  assert.equal((await admin.call("POST", "/api/test/clock", { now: "2026-11-18T12:00" })).status, 200);
+  await admin.call("POST", "/api/reset");
+  const report = await monthReport();
+  for (const row of report.rows) {
+    const expectedAbsent = row.name === "Sarah Chen" || row.name === "Minh Tran" ? 1 : 0; // their one scripted absence
+    assert.equal(row.absent, expectedAbsent, `${row.name} absent`);
+    assert.equal(row.scheduled + row.leave, 13, `${row.name}: 13 working days from 2 to 18 November (leave days aren't scheduled)`);
+  }
+});
+
+test("month: earlier months work, future and malformed months are refused", async () => {
+  const october = await monthReport("2026-10");
+  assert.deepEqual([october.month, october.next], ["2026-10", "2026-11"]);
+  for (const bad of ["2026-12", "2026-13", "nov", "2026-1"]) {
+    assert.equal((await admin.call("GET", `/api/admin/attendance/month?month=${bad}`)).status, 400, bad);
+  }
+});
+
+test("corrections: a forgotten clock-in and clock-out, with the reason kept and a Perfect Day credited once", async () => {
+  const minh = "EMP006";
+  assert.deepEqual((await correct({ employeeId: minh, date: TEST_DAY, kind: "clock_in", time: "08:56" })).data, { ok: true, creditAdded: false });
+  let minhRow = rowOf((await board()).rows, "Minh Tran");
+  assert.deepEqual([minhRow.status, minhRow.clockIn, minhRow.corrected, minhRow.notes], ["working", "08:56", true, ["Forgot to punch, confirmed by team lead"]]);
+
+  assert.equal((await correct({ employeeId: minh, date: TEST_DAY, kind: "clock_out", time: "18:05" })).data.error, "future", "it's only 12:00");
+  await setClock("18:30");
+  assert.deepEqual((await correct({ employeeId: minh, date: TEST_DAY, kind: "clock_out", time: "18:05" })).data, { ok: true, creditAdded: true });
+  assert.deepEqual((await correct({ employeeId: minh, date: TEST_DAY, kind: "clock_out", time: "18:06" })).data, { ok: true, creditAdded: false }, "never credited twice");
+  minhRow = rowOf((await board()).rows, "Minh Tran");
+  assert.deepEqual([minhRow.status, minhRow.clockOut], ["left", "18:06"]);
+});
+
+test("corrections: fixing a past absence updates the month and the employee's own records", async () => {
+  const sarahId = "EMP002";
+  assert.equal((await correct({ employeeId: sarahId, date: "2026-11-03", kind: "clock_in", time: "08:58" })).status, 200);
+  assert.equal((await correct({ employeeId: sarahId, date: "2026-11-03", kind: "clock_out", time: "18:02" })).data.creditAdded, true);
+
+  const sarahRow = rowOf((await monthReport()).rows, "Sarah Chen");
+  assert.deepEqual([sarahRow.absent, sarahRow.perfectDays], [0, 5]);
+  const own = (await sarah.call("GET", "/api/progress")).data;
+  assert.equal(own.days.find((day) => day.date === "2026-11-03").kind, "perfect");
+  const ledger = (await sarah.wallet()).ledger;
+  assert.ok(ledger.some((entry) => entry.title === "Attendance correction" && entry.date === TEST_DAY), "credited as a correction");
+  assert.ok(ledger.some((entry) => entry.title === "5 Perfect Days milestone"), "and it reached her 5-day milestone");
+});
+
+test("corrections: a later real clock-in keeps the corrected time", async () => {
+  await resetAt("08:00");
+  await setClock("09:30");
+  await correct({ employeeId: "EMP001", date: TEST_DAY, kind: "clock_in", time: "08:57" });
+  const result = await alex.clockIn("09:31");
+  assert.deepEqual([result.data.alreadyClockedIn, result.data.time], [true, "08:57"]);
+});
+
+test("corrections: impossible or incomplete fixes are refused", async () => {
+  const cases = [
+    [{ employeeId: "EMP001", date: TEST_DAY, kind: "clock_in", time: "08:00", reason: "" }, 400, "invalid_reason"],
+    [{ employeeId: "EMP001", date: "2026-11-12", kind: "clock_in", time: "08:00" }, 400, "future"],
+    [{ employeeId: "EMP001", date: "2026-02-30", kind: "clock_in", time: "08:00" }, 400, "invalid_date"],
+    [{ employeeId: "EMP001", date: TEST_DAY, kind: "clock_in", time: "25:00" }, 400, "invalid_time"],
+    [{ employeeId: "EMP999", date: TEST_DAY, kind: "clock_in", time: "08:00" }, 404, "unknown_employee"],
+    [{ employeeId: "EMP001", date: TEST_DAY, kind: "lunch", time: "08:00" }, 400, "invalid_kind"],
+    [{ employeeId: "EMP006", date: TEST_DAY, kind: "clock_out", time: "11:00" }, 409, "no_clock_in"],
+    [{ employeeId: "EMP001", date: TEST_DAY, kind: "clock_out", time: "08:30" }, 409, "out_before_in"],
+  ];
+  for (const [body, status, error] of cases) {
+    const result = await correct(body);
+    assert.deepEqual([result.status, result.data.error], [status, error], JSON.stringify(body));
+  }
+  assert.equal(rowOf((await board()).rows, "Alex Morgan").clockIn, "08:55", "nothing changed");
+});
+
+test("export: a CSV that opens in Excel, one row per person per day", async () => {
+  const response = await fetch(`${BASE}/api/admin/attendance/export?month=2026-11`, { headers: { Cookie: admin.cookie, "CF-Connecting-IP": OFFICE_IP } });
+  assert.equal(response.status, 200);
+  assert.match(response.headers.get("content-type"), /text\/csv/);
+  assert.match(response.headers.get("content-disposition"), /attendance-2026-11\.csv/);
+  const bytes = new Uint8Array(await response.clone().arrayBuffer());
+  assert.deepEqual([...bytes.slice(0, 3)], [0xef, 0xbb, 0xbf], "starts with a byte-order mark for Excel");
+  const lines = (await response.text()).replace(/^\uFEFF/, "").trim().split("\r\n");
+  assert.equal(lines[0], "Date,Employee ID,Name,Department,Status,Clock in,Clock out,Minutes late,Minutes left early,Recorded as,Correction note");
+  assert.ok(lines.includes("2026-11-03,EMP002,Sarah Chen,IT,Absent,,,,,,"), "Sarah's absence");
+  assert.ok(lines.includes("2026-11-11,EMP002,Sarah Chen,IT,Late,09:03,,3,,Office,"), "Sarah today");
+  assert.ok(lines.includes("2026-11-06,EMP002,Sarah Chen,IT,Leave,,,,,,"));
+  assert.equal(lines.filter((line) => line.includes(",EMP001,")).length, 8, "Alex: 8 working days so far, no weekends");
+
+  const forbidden = await fetch(`${BASE}/api/admin/attendance/export`, { headers: { Cookie: alex.cookie } });
+  assert.equal(forbidden.status, 403);
 });

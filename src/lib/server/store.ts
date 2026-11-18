@@ -83,15 +83,15 @@ export function getWallet(employeeId: string, client: ClientIp) {
   };
 }
 
-type Db = ReturnType<typeof getDb>;
+export type Db = ReturnType<typeof getDb>;
 
-function shiftOf(db: Db, employeeId: string): Shift {
+export function shiftOf(db: Db, employeeId: string): Shift {
   const employee = db.prepare("SELECT shift_start, shift_end FROM employees WHERE id = ?").get(employeeId);
   return { start: String(employee?.shift_start ?? "09:00"), end: String(employee?.shift_end ?? "18:00") };
 }
 
-function loadMonth(db: Db, employeeId: string, shift: Shift, todayDate: string) {
-  const month = todayDate.slice(0, 7);
+// The employee's calendar for `month` (default: the current month), as their Progress page shows it.
+export function loadMonth(db: Db, employeeId: string, shift: Shift, todayDate: string, month = todayDate.slice(0, 7)) {
   const punches: Record<string, Punches> = {};
   for (const row of db.prepare("SELECT kind, work_date, at_time FROM attendance_events WHERE employee_id = ? AND work_date LIKE ?").all(employeeId, `${month}-%`)) {
     const punch = (punches[String(row.work_date)] ??= { in: null, out: null });
@@ -105,7 +105,7 @@ function loadMonth(db: Db, employeeId: string, shift: Shift, todayDate: string) 
   return buildMonth({ month, today: todayDate, shift, punches, daysOff });
 }
 
-function awardMilestones(db: Db, employeeId: string, shift: Shift, todayDate: string, time: string) {
+export function awardMilestones(db: Db, employeeId: string, shift: Shift, todayDate: string, time: string) {
   const month = todayDate.slice(0, 7);
   const reached = milestonesReached(perfectDayCount(loadMonth(db, employeeId, shift, todayDate)));
   const insert = db.prepare("INSERT OR IGNORE INTO credit_transactions (employee_id, amount, type, title, occurred_on, occurred_time, source_ref, actor) VALUES (?, ?, 'milestone', ?, ?, ?, ?, 'system')");

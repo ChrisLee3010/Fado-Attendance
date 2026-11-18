@@ -4,7 +4,7 @@ import Link from "next/link";
 import { SignOutButton } from "@/components/sign-out-button";
 import { initials, useMe } from "@/lib/session";
 
-export function AppRail({ active }: { active: "today" | "progress" | "rewards" | "history" | "admin" }) {
+export function AppRail({ active }: { active: "today" | "progress" | "rewards" | "history" | "admin" | "attendance" }) {
   const me = useMe();
   const isEmployee = me.roles.includes("employee");
   const isAdmin = me.roles.includes("admin");
@@ -38,10 +38,16 @@ export function AppRail({ active }: { active: "today" | "progress" | "rewards" |
           </>
         )}
         {isAdmin && (
-          <Link className={`nav-item ${active === "admin" ? "active" : ""}`} href="/admin">
-            <BriefcaseIcon />
-            <span>Admin</span>
-          </Link>
+          <>
+            <Link className={`nav-item ${active === "attendance" ? "active" : ""}`} href="/admin/attendance">
+              <ClipboardIcon />
+              <span>Attendance</span>
+            </Link>
+            <Link className={`nav-item ${active === "admin" ? "active" : ""}`} href="/admin">
+              <BriefcaseIcon />
+              <span>Admin</span>
+            </Link>
+          </>
         )}
       </nav>
 
@@ -60,4 +66,5 @@ function HomeIcon() { return <svg viewBox="0 0 24 24" fill="none" stroke="curren
 function ChartIcon() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 20V10m6 10V4m6 16v-7m4 7H2"/></svg>; }
 function GiftIcon() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M20 12v9H4v-9m-1-5h18v5H3V7Zm9 0v14M12 7H8.5A2.5 2.5 0 1 1 11 4.5L12 7Zm0 0h3.5a2.5 2.5 0 1 0-2.5-2.5L12 7Z"/></svg>; }
 function HistoryIcon() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 12a8 8 0 1 0 2.5-5.8M4 4v4h4"/><path d="M12 8v4l3 2"/></svg>; }
+function ClipboardIcon() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M9 10h6M9 14h6M9 18h3"/></svg>; }
 function BriefcaseIcon() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M3 13h18"/></svg>; }

@@ -20,6 +20,7 @@ const env = {
   WORKDAY_TEST_CLOCK: "1", // lets the tests move the server clock
   TRUSTED_PROXY: "cloudflare", // tests say which network they're on with CF-Connecting-IP
   WORKDAY_DB: path.join(dataDir, "test.db"),
+  NEXT_DIST_DIR: ".next-test", // its own build folder, so a running `npm run share` keeps working
 };
 
 function run(args) {

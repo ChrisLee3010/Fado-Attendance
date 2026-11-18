@@ -9,7 +9,7 @@ export function isValidTime(value: string) {
   return !!match && Number(match[1]) < 24 && Number(match[2]) < 60;
 }
 
-function toMinutes(value: string) {
+export function toMinutes(value: string) {
   const [hours, minutes] = value.split(":").map(Number);
   return hours * 60 + minutes;
 }

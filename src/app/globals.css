@@ -422,6 +422,34 @@ a.text-button { text-decoration: none; }
 .desk-error { grid-column: 1 / -1; margin: 0; color: #9b2c24; font-size: 12px; }
 .desk-empty { display: block; color: var(--soft-ink); font-size: 13px; }
 @media (max-width: 720px) { .desk-card { grid-template-columns: 1fr; } }
+.chip.late { background: #fff1d6; color: #7a4b00; }
+.attendance-stats { grid-template-columns: repeat(4, 1fr); }
+.admin-stat strong small { margin-left: 2px; color: var(--soft-ink); font-size: 16px; letter-spacing: 0; }
+.attendance-actions { display: flex; align-items: center; justify-content: flex-end; gap: 12px; white-space: nowrap; }
+.month-controls { display: flex; align-items: center; gap: 14px; }
+.month-controls .text-button:disabled { opacity: .35; cursor: default; }
+.desk-export { padding: 8px 12px; border-radius: 9px; background: var(--ink); color: var(--leaf); font-size: 12px; font-weight: 800; text-decoration: none; }
+.desk-export:focus-visible { outline: 3px solid var(--leaf-dark); outline-offset: 2px; }
+.month-table .admin-table-head, .month-table .admin-table-row { grid-template-columns: 1.5fr .8fr 1.1fr .6fr .6fr .7fr .8fr .7fr; align-items: center; }
+.month-table [role="cell"] small { display: block; color: var(--soft-ink); font-size: 11px; }
+.month-table .warn { color: #7a4b00; font-weight: 700; }
+.month-table .bad { color: #9b2c24; font-weight: 700; }
+.month-note { margin-top: 12px !important; text-align: left !important; }
+.correction-form { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; }
+.correction-form label { display: flex; flex: 1 1 130px; flex-direction: column; gap: 5px; }
+.correction-form label.wide { flex: 3 1 260px; }
+.correction-form label span { color: var(--soft-ink); font-size: 11px; font-weight: 800; }
+.correction-form input, .correction-form select { min-height: 38px; padding: 0 11px; border: 1.5px solid var(--line); border-radius: 9px; background: #fbfcf9; color: var(--ink); font-size: 13px; }
+.correction-form input:focus-visible, .correction-form select:focus-visible { border-color: var(--ink); outline: none; }
+.desk-ok { flex-basis: 100%; margin: 0; color: #315a0a; font-size: 12px; }
+.correction-form .desk-error { flex-basis: 100%; }
+@media (max-width: 760px) {
+  .attendance-stats { grid-template-columns: repeat(2, 1fr); }
+  .month-table { overflow-x: auto; }
+  .month-table .admin-table-head, .month-table .admin-table-row { min-width: 720px; }
+  .attendance-row { grid-template-columns: 1fr; }
+  .attendance-actions { justify-content: flex-start; }
+}
 .admin-note { margin: 40px 0 0; color: #83908e; font-size: 11px; text-align: center; }
 
 @media (max-width: 760px) {

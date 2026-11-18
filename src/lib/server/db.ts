@@ -5,7 +5,7 @@ import { DEMO_ACCOUNTS, DEMO_PASSWORD } from "../demo-accounts";
 import { formatShort } from "../history";
 import { evaluatePerfectDay, PERFECT_DAY_CREDITS } from "../perfect-day";
 import { MILESTONE_TARGETS, milestoneCredits, milestoneTitle } from "../progress";
-import { nextWorkday, previousWorkdays, shiftDate, today } from "./clock";
+import { isWeekday, nextWorkday, previousWorkdays, shiftDate, today } from "./clock";
 import { hashPassword } from "./password";
 
 const DB_PATH = process.env.WORKDAY_DB ?? path.join(/* turbopackIgnore: true */ process.cwd(), "data", "workday.db");
@@ -29,7 +29,9 @@ CREATE TABLE IF NOT EXISTS attendance_events (
   at_time TEXT NOT NULL,
   source TEXT NOT NULL CHECK (source IN ('seed', 'office', 'remote', 'admin_correction')),
   ip TEXT,
-  user_agent TEXT
+  user_agent TEXT,
+  note TEXT,
+  corrected_by TEXT
 );
 CREATE TABLE IF NOT EXISTS office_networks (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -115,7 +117,16 @@ CREATE TABLE IF NOT EXISTS leave_requests (
 `;
 
 // Columns ending in _at hold "YYYY-MM-DD HH:MM" in Vietnam time; labels like "Today · 09:40" are built when read.
-const SCHEMA_VERSION = 7;
+const SCHEMA_VERSION = 8;
+
+// Databases at least this new are upgraded in place (keeping punches and office networks); older ones are rebuilt.
+const OLDEST_MIGRATABLE = 7;
+const MIGRATIONS: Record<number, string[]> = {
+  8: [
+    "ALTER TABLE attendance_events ADD COLUMN note TEXT",
+    "ALTER TABLE attendance_events ADD COLUMN corrected_by TEXT",
+  ],
+};
 const SCHEMA_KEY = `${SCHEMA_VERSION}:${SCHEMA}`;
 
 const TABLES_IN_DELETE_ORDER = [
@@ -168,12 +179,41 @@ const ATTENDANCE_HISTORY: Record<string, DayScript[]> = {
     { in: "08:56", out: "18:04" },
     { in: "08:57", out: "18:05" },
   ],
+  EMP006: [
+    { in: "08:57", out: "18:02" },
+    { in: "09:15", out: "18:00" },
+    { in: "08:55", out: "18:04" },
+    { in: "08:59", out: "18:01" },
+    {},
+    { in: "08:54", out: "18:06" },
+    { in: "08:58", out: "18:00" },
+  ],
 };
+
+// Ordinary days that fill the rest of the current month before the scripted week, repeated in turn,
+// so HR's month view doesn't show everyone absent for the first weeks.
+const FILLER_DAYS: Record<string, DayScript[]> = {
+  EMP001: [{ in: "08:54", out: "18:03" }, { in: "08:58", out: "18:01" }, { in: "08:56", out: "18:05" }, { in: "09:04", out: "18:02" }],
+  EMP002: [{ in: "08:57", out: "18:02" }, { in: "08:59", out: "18:04" }, { in: "09:08", out: "18:00" }, { in: "08:55", out: "18:01" }],
+  EMP003: [{ in: "08:55", out: "18:02" }, { in: "08:57", out: "18:00" }, { in: "08:59", out: "18:05" }],
+  EMP006: [{ in: "08:56", out: "18:01" }, { in: "08:58", out: "18:03" }, { in: "09:02", out: "18:00" }],
+};
+
+// Working days from the 1st of today's month up to (not including) `before`, oldest first.
+function earlierWorkdaysThisMonth(todayDate: string, before: string) {
+  const monthStart = `${todayDate.slice(0, 7)}-01`;
+  const days: string[] = [];
+  for (let cursor = shiftDate(before, -1); cursor >= monthStart; cursor = shiftDate(cursor, -1)) {
+    if (isWeekday(cursor)) days.unshift(cursor);
+  }
+  return days;
+}
 
 function seed(db: DatabaseSync) {
   const todayDate = today();
   const daysAgo = (days: number) => shiftDate(todayDate, -days);
   const workdays = previousWorkdays(todayDate, HISTORY_DAYS);
+  const fillerDates = earlierWorkdaysThisMonth(todayDate, workdays[0]);
 
   // Today starts empty: everyone clocks in through the app.
   const employee = db.prepare("INSERT INTO employees (id, name, department, role, shift_start, shift_end, remote_allowed) VALUES (?, ?, ?, ?, '09:00', '18:00', ?)");
@@ -188,10 +228,14 @@ function seed(db: DatabaseSync) {
   const shift = { start: "09:00", end: "18:00" };
 
   // Credits are derived from the punches with the same rules the app applies at clock-out.
-  for (const [employeeId, days] of Object.entries(ATTENDANCE_HISTORY)) {
+  for (const [employeeId, scripted] of Object.entries(ATTENDANCE_HISTORY)) {
     const perfectDaysByMonth = new Map<string, number>();
-    days.forEach((day, index) => {
-      const date = workdays[index];
+    const filler = FILLER_DAYS[employeeId];
+    const plan = [
+      ...fillerDates.map((date, index) => ({ date, day: filler[index % filler.length] })),
+      ...scripted.map((day, index) => ({ date: workdays[index], day })),
+    ];
+    plan.forEach(({ date, day }) => {
       if (day.off) {
         dayOff.run(employeeId, date, day.off, "Approved leave");
         return;
@@ -278,7 +322,19 @@ export function getDb() {
     mkdirSync(path.dirname(DB_PATH), { recursive: true });
     const db = new DatabaseSync(DB_PATH);
     db.exec("PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 5000; PRAGMA foreign_keys = ON;");
-    const migrating = Number(db.prepare("PRAGMA user_version").get()?.user_version ?? 0) < SCHEMA_VERSION;
+    const version = Number(db.prepare("PRAGMA user_version").get()?.user_version ?? 0);
+    if (version >= OLDEST_MIGRATABLE && version < SCHEMA_VERSION) {
+      db.exec("BEGIN IMMEDIATE");
+      try {
+        for (let step = version + 1; step <= SCHEMA_VERSION; step++) for (const statement of MIGRATIONS[step] ?? []) db.exec(statement);
+        db.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
+        db.exec("COMMIT");
+      } catch (error) {
+        db.exec("ROLLBACK");
+        throw error;
+      }
+    }
+    const migrating = version < OLDEST_MIGRATABLE;
     if (migrating) {
       db.exec("PRAGMA foreign_keys = OFF");
       for (const row of db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'").all()) {
