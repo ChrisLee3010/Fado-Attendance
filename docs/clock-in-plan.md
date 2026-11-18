@@ -1,7 +1,9 @@
 # Plan: real clock-in (office network check + passkey)
 
-Status · 2026-11-17: phases 0–2 done on the `clock-in` branch, plus a quick public tunnel for phone testing
-(`npm run share`). Next: field test on phones, then phase 3 (passkeys, which needs a fixed domain).
+Status · 2026-11-18: phases 0–2 done on the `clock-in` branch, plus a quick public tunnel for phone testing
+(`npm run share`). **Field test passed** on a real phone through the tunnel: on the company Wi-Fi it was refused
+until an admin used "Add the network I'm on", then accepted; on 4G it was refused. Still to watch: whether the
+company's public IP stays the same over days. Next: phase 3 (passkeys, which needs a fixed domain).
 
 ## Running it
 
