@@ -302,6 +302,7 @@ test("roles are enforced: nobody can use another role's endpoints", async () => 
     [alex, "GET", "/api/admin/attendance/month", "/"],
     [alex, "POST", "/api/admin/attendance/corrections", "/"],
     [cashier, "GET", "/api/admin/attendance/today", "/cashier"],
+    [cashier, "GET", "/api/honours", "/cashier"],
     [admin, "GET", `/api/vouchers/${data.code}`, "/"],
     [admin, "POST", `/api/vouchers/${data.code}/consume`, "/"],
   ];
@@ -732,4 +733,49 @@ test("export: a CSV that opens in Excel, one row per person per day", async () =
 
   const forbidden = await fetch(`${BASE}/api/admin/attendance/export`, { headers: { Cookie: alex.cookie } });
   assert.equal(forbidden.status, 403);
+});
+
+// ---- Monthly honour wall ----
+
+const wallFor = async (client, month) => (await client.call("GET", `/api/honours${month ? `?month=${month}` : ""}`)).data;
+const namesIn = (wall, tier) => wall.tiers.find((entry) => entry.tier === tier).people.map((person) => person.name);
+
+test("honour wall: last month by default, everyone on their own level, no one ranked", async () => {
+  const wall = await wallFor(alex);
+  assert.deepEqual([wall.month, wall.previous, wall.next], ["2026-10", null, null]);
+  assert.deepEqual(wall.tiers.map((entry) => entry.tier), ["perfect_month", "on_time", "full_attendance"]);
+  assert.deepEqual(namesIn(wall, "perfect_month"), ["Daniel Lee"]);
+  assert.deepEqual(namesIn(wall, "on_time"), ["Alex Morgan"]);
+  assert.deepEqual(namesIn(wall, "full_attendance"), ["Sarah Chen"]);
+  assert.equal(wall.yourTier, "on_time");
+  assert.deepEqual(wall.tiers.flatMap((entry) => entry.people.filter((person) => person.you).map((person) => person.name)), ["Alex Morgan"]);
+});
+
+test("honour wall: names and departments only, no numbers about anyone", async () => {
+  const wall = await wallFor(sarah);
+  const people = wall.tiers.flatMap((entry) => entry.people);
+  for (const person of people) assert.deepEqual(Object.keys(person).sort(), ["department", "name", "you"]);
+  assert.doesNotMatch(JSON.stringify(wall.tiers.map((entry) => entry.people)), /\d/, "no counts, times or IDs next to anyone's name");
+  assert.doesNotMatch(JSON.stringify(wall), /rank|score|percent|leaderboard|EMP0/i);
+});
+
+test("honour wall: a corrected absence earns the level, and each level lists people alphabetically", async () => {
+  assert.equal((await wallFor(admin)).tiers.some((entry) => entry.people.some((person) => person.name === "Minh Tran")), false, "Minh missed 16 October");
+  assert.equal((await correct({ employeeId: "EMP006", date: "2026-10-16", kind: "clock_in", time: "08:55" })).status, 200);
+  assert.equal((await correct({ employeeId: "EMP006", date: "2026-10-16", kind: "clock_out", time: "18:02" })).status, 200);
+  assert.deepEqual(namesIn(await wallFor(admin), "perfect_month"), ["Daniel Lee", "Minh Tran"]);
+});
+
+test("honour wall: only finished months, never this month or the future", async () => {
+  for (const month of ["2026-11", "2026-12", "2026-09", "nope"]) {
+    assert.equal((await alex.call("GET", `/api/honours?month=${month}`)).status, 400, month);
+  }
+  assert.equal((await new Client().call("GET", "/api/honours")).status, 401);
+});
+
+test("progress: privately, what you're on track for this month", async () => {
+  const outlook = async (client) => (await client.call("GET", "/api/progress")).data.honour;
+  assert.deepEqual(await outlook(admin), { tier: "perfect_month", daysSoFar: 7, daysLeft: 14 }, "Daniel: every day perfect so far");
+  assert.deepEqual(await outlook(alex), { tier: "full_attendance", daysSoFar: 7, daysLeft: 14 }, "Alex was late on 6 November");
+  assert.deepEqual(await outlook(sarah), { tier: null, daysSoFar: 6, daysLeft: 14 }, "Sarah missed 3 November");
 });

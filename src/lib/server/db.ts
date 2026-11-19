@@ -199,6 +199,25 @@ const FILLER_DAYS: Record<string, DayScript[]> = {
   EMP006: [{ in: "08:56", out: "18:01" }, { in: "08:58", out: "18:03" }, { in: "09:02", out: "18:00" }],
 };
 
+// Last month, so the honour wall (which only shows finished months) has something to show. Punches only, no credits.
+// Each person ends up on a different level: Daniel a Perfect month, Alex on time every day (one late clock-out),
+// Sarah never missed a day (late once), Minh one absence (not on the wall).
+function lastMonthDay(employeeId: string, index: number): DayScript {
+  const day = { in: `08:5${1 + ((index * 3) % 9)}`, out: `18:0${(index * 7) % 10}` };
+  if (employeeId === "EMP001" && index % 9 === 4) return { ...day, out: "18:25" };
+  if (employeeId === "EMP002" && index === 6) return { ...day, in: "09:07" };
+  if (employeeId === "EMP006" && index === 11) return {};
+  return day;
+}
+
+function lastMonthWorkdays(todayDate: string) {
+  const end = shiftDate(`${todayDate.slice(0, 7)}-01`, -1);
+  const start = `${end.slice(0, 7)}-01`;
+  const days: string[] = [];
+  for (let cursor = start; cursor <= end; cursor = shiftDate(cursor, 1)) if (isWeekday(cursor)) days.push(cursor);
+  return days;
+}
+
 // Working days from the 1st of today's month up to (not including) `before`, oldest first.
 function earlierWorkdaysThisMonth(todayDate: string, before: string) {
   const monthStart = `${todayDate.slice(0, 7)}-01`;
@@ -257,6 +276,15 @@ function seed(db: DatabaseSync) {
       if (MILESTONE_TARGETS.includes(perfectDays)) {
         credit.run(employeeId, milestoneCredits(perfectDays), "milestone", milestoneTitle(perfectDays), date, day.out, `milestone:${employeeId}:${month}:pd-${perfectDays}`);
       }
+    });
+
+    // Last month's punches, skipping any day the recent history above already covers (early in a month they overlap).
+    const covered = new Set(plan.map(({ date }) => date));
+    lastMonthWorkdays(todayDate).forEach((date, index) => {
+      const day = lastMonthDay(employeeId, index);
+      if (covered.has(date) || !day.in) return;
+      event.run(`seed:${employeeId}:${date}:in`, employeeId, "clock_in", date, day.in);
+      if (day.out) event.run(`seed:${employeeId}:${date}:out`, employeeId, "clock_out", date, day.out);
     });
   }
 

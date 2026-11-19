@@ -3,6 +3,7 @@ import { locate, recordAttempt, whereAmI, type AttemptReason, type PunchKind } f
 import type { ClientIp } from "./client-ip";
 import { now, stamp, today } from "./clock";
 import { formatStamp, type Category, type HistoryEntry } from "../history";
+import { honourOutlook } from "../honours";
 import { formatIp } from "../ip";
 import { classifyArrival, evaluatePerfectDay, PERFECT_DAY_CREDITS, perfectDayWindow, type Arrival, type Shift } from "../perfect-day";
 import {
@@ -144,6 +145,8 @@ export function getProgress(employeeId: string) {
       next: nextMilestone(stats.perfectDays),
     },
     reward: { name: target.name, icon: target.icon, cost: target.cost, balance, remaining: Math.max(0, target.cost - balance) },
+    // Private: only what *you* are on track for. The wall itself shows finished months only.
+    honour: honourOutlook(days, shift, todayDate),
   };
 }
 

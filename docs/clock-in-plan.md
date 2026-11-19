@@ -6,8 +6,11 @@ until an admin used "Add the network I'm on", then accepted; on 4G it was refuse
 company's public IP stays the same over days.
 
 **Scope change 2026-11-18:** the manager confirmed a localhost demo is enough for the contest. Phases 3 (passkeys) and
-the fixed domain move to "rollout ideas" for the product document, together with FADO SSO sign-in. Next: admin
-attendance view (lateness), monthly recognition, product document.
+the fixed domain move to "rollout ideas" for the product document, together with FADO SSO sign-in.
+
+**Done 2026-11-18/19:** admin attendance view (today, lateness, month totals, corrections, Excel export) and the
+monthly honour wall (levels, not rankings: Perfect month / On time, every day / Never missed a day; finished months
+only; private "on track for" card on each person's Progress page). Next: product document.
 
 ## Running it
 

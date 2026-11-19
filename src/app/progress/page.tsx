@@ -5,6 +5,7 @@ import { useState } from "react";
 import { AppRail } from "@/components/app-rail";
 import { SignOutButton } from "@/components/sign-out-button";
 import { formatDay } from "@/lib/history";
+import { HONOUR_TITLES } from "@/lib/honours";
 import { weekdayIndex, type DayInfo, type DayKind } from "@/lib/progress";
 import { useProgress } from "@/lib/progress-store";
 import { useMe } from "@/lib/session";
@@ -213,6 +214,32 @@ export default function ProgressPage() {
                 ))}
               </ul>
             )}
+          </div>
+        </section>
+
+        <section className="pg-section" aria-labelledby="honour-heading">
+          <h2 id="honour-heading">Honour wall</h2>
+          <div className="pg-card pg-honour">
+            <span className="pg-honour-icon" aria-hidden="true">{progress.honour.tier ? HONOUR_TITLES[progress.honour.tier].icon : "🌱"}</span>
+            <div>
+              {progress.honour.tier ? (
+                <>
+                  <strong>{progress.honour.daysSoFar === 0 ? "A fresh month" : `On track for: ${HONOUR_TITLES[progress.honour.tier].title}`}</strong>
+                  <p>
+                    {progress.honour.daysSoFar === 0
+                      ? "Every working day this month a Perfect Day puts you on the wall as a Perfect month."
+                      : `${HONOUR_TITLES[progress.honour.tier].description} ${progress.honour.daysLeft} working ${progress.honour.daysLeft === 1 ? "day" : "days"} to go.`}
+                  </p>
+                </>
+              ) : (
+                <>
+                  <strong>Next month is a fresh start</strong>
+                  <p>A missed day means no honour-wall level this month. Every Perfect Day still earns its credits.</p>
+                </>
+              )}
+              <p className="pg-hint">Only you see this. The wall shows finished months, with no ranking.</p>
+            </div>
+            <Link className="pg-link" href="/honours">See the wall</Link>
           </div>
         </section>
 
