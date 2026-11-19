@@ -14,8 +14,8 @@ export type DemoAccount = {
 
 // Roles add up: an admin is still an employee with their own attendance and wallet.
 export const DEMO_ACCOUNTS: DemoAccount[] = [
-  { id: "u-alex", email: "alex@fado.demo", name: "Alex Morgan", roles: ["employee"], employeeId: "EMP001", label: "Employee" },
-  { id: "u-sarah", email: "sarah@fado.demo", name: "Sarah Chen", roles: ["employee"], employeeId: "EMP002", label: "Employee" },
-  { id: "u-daniel", email: "admin@fado.demo", name: "Daniel Lee", roles: ["employee", "admin"], employeeId: "EMP003", label: "HR manager · Employee + admin" },
-  { id: "u-cafe", email: "cashier@fado.demo", name: "Café Cashier", roles: ["cashier"], employeeId: null, label: "Cashier station" },
+  { id: "u-alex", email: "alex@fado.demo", name: "Alex Morgan", roles: ["employee"], employeeId: "EMP001", label: "Nhân viên" },
+  { id: "u-sarah", email: "sarah@fado.demo", name: "Sarah Chen", roles: ["employee"], employeeId: "EMP002", label: "Nhân viên · được làm từ xa" },
+  { id: "u-daniel", email: "admin@fado.demo", name: "Daniel Lee", roles: ["employee", "admin"], employeeId: "EMP003", label: "Quản lý HR · nhân viên + quản trị" },
+  { id: "u-cafe", email: "cashier@fado.demo", name: "Café Cashier", roles: ["cashier"], employeeId: null, label: "Quầy đổi quà" },
 ];

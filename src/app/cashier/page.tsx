@@ -35,21 +35,21 @@ export default function CashierPage() {
       <header className="cashier-top">
         <div className="brand cashier-brand">
           <span className="brand-mark">W</span>
-          <span>FADO Café<br />cashier</span>
+          <span>FADO Café<br />quầy thu ngân</span>
         </div>
         <div className="cashier-top-right">
-          <span className="demo-pill cashier-pill"><i /> Demo data</span>
+          <span className="demo-pill cashier-pill"><i /> Dữ liệu demo</span>
           <span className="cashier-user">{me.name}</span>
           <SignOutButton className="cashier-back" />
         </div>
       </header>
 
       <section className="cashier-card">
-        <h1>Check a voucher</h1>
-        <p className="cashier-lead">Ask the employee for their voucher code and enter it here.</p>
+        <h1>Kiểm tra voucher</h1>
+        <p className="cashier-lead">Hỏi nhân viên mã voucher và nhập vào đây.</p>
 
         <form className="cashier-form" onSubmit={check}>
-          <label htmlFor="voucher-code">Voucher code</label>
+          <label htmlFor="voucher-code">Mã voucher</label>
           <div className="cashier-field">
             <input
               id="voucher-code"
@@ -61,47 +61,47 @@ export default function CashierPage() {
               autoCapitalize="characters"
               spellCheck={false}
             />
-            <button className="cashier-check" type="submit" disabled={!input.trim() || busy}>Check code</button>
+            <button className="cashier-check" type="submit" disabled={!input.trim() || busy}>Kiểm tra mã</button>
           </div>
         </form>
 
         <div aria-live="polite">
           {result?.status === "invalid" && (
             <div className="cashier-result bad">
-              <strong>Code not found</strong>
-              <p>No voucher matches {input.trim().toUpperCase()}. Check the code with the employee and try again.</p>
+              <strong>Không tìm thấy mã</strong>
+              <p>Không có voucher nào khớp {input.trim().toUpperCase()}. Hãy kiểm tra lại mã với nhân viên và thử lại.</p>
             </div>
           )}
 
           {result?.status === "issued" && (
             <div className="cashier-result ok">
-              <strong>Valid voucher</strong>
+              <strong>Voucher hợp lệ</strong>
               <dl>
-                <div><dt>Reward</dt><dd>{result.reward}</dd></div>
-                <div><dt>Employee</dt><dd>{result.employee} · {result.employeeId}</dd></div>
-                <div><dt>Value</dt><dd>{result.cost} credits</dd></div>
+                <div><dt>Phần quà</dt><dd>{result.reward}</dd></div>
+                <div><dt>Nhân viên</dt><dd>{result.employee} · {result.employeeId}</dd></div>
+                <div><dt>Giá trị</dt><dd>{result.cost} credit</dd></div>
               </dl>
-              <button className="cashier-use" onClick={markUsed} disabled={busy}>Mark as used</button>
+              <button className="cashier-use" onClick={markUsed} disabled={busy}>Đánh dấu đã dùng</button>
             </div>
           )}
 
           {result?.status === "used" && justUsed && (
             <div className="cashier-result done">
-              <strong>Voucher used</strong>
-              <p>Give the employee their {result.reward.toLowerCase()}. This code can&apos;t be used again.</p>
+              <strong>Đã dùng voucher</strong>
+              <p>Hãy đưa nhân viên phần quà: {result.reward}. Mã này không thể dùng lại.</p>
             </div>
           )}
 
           {result?.status === "used" && !justUsed && (
             <div className="cashier-result warn">
-              <strong>Already used</strong>
-              <p>Used {result.usedAt}. Don&apos;t serve another one.</p>
+              <strong>Voucher đã được dùng</strong>
+              <p>Đã dùng {result.usedAt}. Đừng phục vụ thêm lần nữa.</p>
             </div>
           )}
         </div>
       </section>
 
-      <p className="cashier-note">Fictional prototype data. No real café or payment system is connected.</p>
+      <p className="cashier-note">Dữ liệu giả lập. Không kết nối với quán café hay hệ thống thanh toán thật nào.</p>
     </main>
   );
 }

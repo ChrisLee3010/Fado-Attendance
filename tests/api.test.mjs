@@ -169,7 +169,7 @@ test("every history entry has a real date, time, category and status, newest fir
   }
   const stamps = state.ledger.map((entry) => `${entry.date} ${entry.time}`);
   assert.deepEqual(stamps, [...stamps].sort().reverse(), "newest first");
-  assert.equal(state.ledger.find((entry) => entry.title === "Attendance correction").category, "adjustment");
+  assert.equal(state.ledger.find((entry) => entry.title === "Điều chỉnh công").category, "adjustment");
   assert.equal(state.ledger.reduce((sum, entry) => sum + entry.amount, 0), state.balance, "balance is the sum of the history");
 });
 
@@ -188,7 +188,7 @@ test("new credits and redemptions land at the top of the history and track the v
 
 test("a seeded redemption shows its voucher status in the history", async () => {
   const lunch = (await sarah.wallet()).ledger.find((entry) => entry.category === "redemption");
-  assert.deepEqual([lunch.title, lunch.amount, lunch.status], ["Lunch for two voucher", -75, "used"]);
+  assert.deepEqual([lunch.title, lunch.amount, lunch.status], ["Đổi quà: Bữa trưa cho hai người", -75, "used"]);
 });
 
 test("an admin is also an employee with their own workday and wallet", async () => {
@@ -213,7 +213,7 @@ test("progress: each employee sees their own month, built from their real punche
   const kinds = Object.fromEntries(alexProgress.days.map((day) => [day.date, day.kind]));
   assert.deepEqual([kinds["2026-11-02"], kinds["2026-11-06"], kinds["2026-11-07"], kinds["2026-11-11"], kinds["2026-11-12"]], ["perfect", "attended", "weekend", "in_progress", "upcoming"]);
   assert.deepEqual(alexProgress.milestones.next, { target: 8, remaining: 2, credits: 8 });
-  assert.deepEqual(alexProgress.reward, { name: "Coffee voucher", icon: "☕", cost: 40, balance: 38, remaining: 2 });
+  assert.deepEqual(alexProgress.reward, { name: "Voucher cà phê", icon: "☕", cost: 40, balance: 38, remaining: 2 });
 
   const sarahProgress = (await sarah.call("GET", "/api/progress")).data;
   assert.deepEqual(sarahProgress.stats, {
@@ -247,8 +247,8 @@ test("reaching a milestone at clock-out credits it exactly once", async () => {
 
   await admin.clockOut("18:05");
   const ledger = (await admin.wallet()).ledger;
-  assert.equal(ledger.filter((entry) => entry.title === "8 Perfect Days milestone").length, 1);
-  assert.equal(ledger.find((entry) => entry.title === "8 Perfect Days milestone").amount, 8);
+  assert.equal(ledger.filter((entry) => entry.title === "Mốc 8 Perfect Day").length, 1);
+  assert.equal(ledger.find((entry) => entry.title === "Mốc 8 Perfect Day").amount, 8);
   assert.equal((await admin.wallet()).balance, 48, "a repeated clock-out adds nothing");
 });
 
@@ -375,9 +375,9 @@ test("redemptions and voucher use are stamped with the server's time", async () 
   await cashier.call("POST", `/api/vouchers/${code}/consume`);
 
   const state = await alex.wallet();
-  assert.deepEqual([state.voucherIssuedAt, state.voucherUsedAt], ["Today · 18:20", "Today · 18:31"]);
+  assert.deepEqual([state.voucherIssuedAt, state.voucherUsedAt], ["Hôm nay · 18:20", "Hôm nay · 18:31"]);
   assert.equal(state.ledger[0].time, "18:20");
-  assert.equal((await admin.call("GET", "/api/admin/overview")).data.redemptions.find((item) => item.code === code).when, "Today · 18:20");
+  assert.equal((await admin.call("GET", "/api/admin/overview")).data.redemptions.find((item) => item.code === code).when, "Hôm nay · 18:20");
 });
 
 test("the test clock only accepts a real date and time", async () => {
@@ -687,8 +687,8 @@ test("corrections: fixing a past absence updates the month and the employee's ow
   const own = (await sarah.call("GET", "/api/progress")).data;
   assert.equal(own.days.find((day) => day.date === "2026-11-03").kind, "perfect");
   const ledger = (await sarah.wallet()).ledger;
-  assert.ok(ledger.some((entry) => entry.title === "Attendance correction" && entry.date === TEST_DAY), "credited as a correction");
-  assert.ok(ledger.some((entry) => entry.title === "5 Perfect Days milestone"), "and it reached her 5-day milestone");
+  assert.ok(ledger.some((entry) => entry.title === "Điều chỉnh công" && entry.date === TEST_DAY), "credited as a correction");
+  assert.ok(ledger.some((entry) => entry.title === "Mốc 5 Perfect Day"), "and it reached her 5-day milestone");
 });
 
 test("corrections: a later real clock-in keeps the corrected time", async () => {
@@ -725,10 +725,10 @@ test("export: a CSV that opens in Excel, one row per person per day", async () =
   const bytes = new Uint8Array(await response.clone().arrayBuffer());
   assert.deepEqual([...bytes.slice(0, 3)], [0xef, 0xbb, 0xbf], "starts with a byte-order mark for Excel");
   const lines = (await response.text()).replace(/^\uFEFF/, "").trim().split("\r\n");
-  assert.equal(lines[0], "Date,Employee ID,Name,Department,Status,Clock in,Clock out,Minutes late,Minutes left early,Recorded as,Correction note");
-  assert.ok(lines.includes("2026-11-03,EMP002,Sarah Chen,IT,Absent,,,,,,"), "Sarah's absence");
-  assert.ok(lines.includes("2026-11-11,EMP002,Sarah Chen,IT,Late,09:03,,3,,Office,"), "Sarah today");
-  assert.ok(lines.includes("2026-11-06,EMP002,Sarah Chen,IT,Leave,,,,,,"));
+  assert.equal(lines[0], "Ngày,Mã nhân viên,Họ tên,Phòng ban,Trạng thái,Giờ vào,Giờ ra,Phút trễ,Phút về sớm,Ghi nhận qua,Ghi chú sửa công");
+  assert.ok(lines.includes("2026-11-03,EMP002,Sarah Chen,IT,Vắng,,,,,,"), "Sarah's absence");
+  assert.ok(lines.includes("2026-11-11,EMP002,Sarah Chen,IT,Trễ,09:03,,3,,Văn phòng,"), "Sarah today");
+  assert.ok(lines.includes("2026-11-06,EMP002,Sarah Chen,IT,Nghỉ phép,,,,,,"));
   assert.equal(lines.filter((line) => line.includes(",EMP001,")).length, 8, "Alex: 8 working days so far, no weekends");
 
   const forbidden = await fetch(`${BASE}/api/admin/attendance/export`, { headers: { Cookie: alex.cookie } });

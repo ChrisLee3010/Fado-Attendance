@@ -12,9 +12,9 @@ export type HonourTier = "perfect_month" | "on_time" | "full_attendance";
 export const HONOUR_TIERS: HonourTier[] = ["perfect_month", "on_time", "full_attendance"];
 
 export const HONOUR_TITLES: Record<HonourTier, { title: string; description: string; icon: string }> = {
-  perfect_month: { title: "Perfect month", description: "Every working day was a Perfect Day.", icon: "🌟" },
-  on_time: { title: "On time, every day", description: "Never absent and never late.", icon: "⏰" },
-  full_attendance: { title: "Never missed a day", description: "Present on every working day. Approved leave doesn't count against anyone.", icon: "✅" },
+  perfect_month: { title: "Tháng hoàn hảo", description: "Mọi ngày làm việc đều là Perfect Day.", icon: "🌟" },
+  on_time: { title: "Đúng giờ mỗi ngày", description: "Không vắng ngày nào, không trễ ngày nào.", icon: "⏰" },
+  full_attendance: { title: "Không vắng ngày nào", description: "Có mặt mọi ngày làm việc. Nghỉ phép được duyệt không bị tính.", icon: "✅" },
 };
 
 const isScheduled = (day: DayInfo) => day.kind !== "weekend" && day.kind !== "leave" && day.kind !== "holiday";

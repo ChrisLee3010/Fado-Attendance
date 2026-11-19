@@ -15,26 +15,26 @@ export const CATEGORIES: Category[] = ["attendance", "achievement", "redemption"
 export const STATUSES: TxStatus[] = ["credited", "issued", "used"];
 
 export const CATEGORY_LABELS: Record<Category, string> = {
-  attendance: "Attendance",
-  achievement: "Achievement",
-  redemption: "Reward redemption",
-  adjustment: "Adjustment",
+  attendance: "Chấm công",
+  achievement: "Thành tích",
+  redemption: "Đổi quà",
+  adjustment: "Điều chỉnh",
 };
 
 export const STATUS_LABELS: Record<TxStatus, string> = {
-  credited: "Credited",
-  issued: "Voucher ready",
-  used: "Voucher used",
+  credited: "Đã cộng",
+  issued: "Voucher sẵn sàng",
+  used: "Đã dùng voucher",
 };
 
 export type Period = "month" | "last_month" | "ninety_days" | "all";
 export type QuickFilter = "all" | "earned" | "spent" | "adjustments";
 
 export const PERIOD_LABELS: Record<Period, string> = {
-  month: "This month",
-  last_month: "Last month",
-  ninety_days: "Last 90 days",
-  all: "All time",
+  month: "Tháng này",
+  last_month: "Tháng trước",
+  ninety_days: "90 ngày qua",
+  all: "Tất cả",
 };
 
 export type Filters = {
@@ -48,8 +48,6 @@ export type Filters = {
 
 export const DEFAULT_FILTERS: Filters = { quick: "all", period: "month", categories: [], statuses: [], from: "", to: "" };
 
-const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-
 function shiftDate(date: string, days: number) {
   const [year, month, day] = date.split("-").map(Number);
   return new Date(Date.UTC(year, month - 1, day + days)).toISOString().slice(0, 10);
@@ -62,26 +60,41 @@ function previousMonthKey(date: string) {
   return new Date(Date.UTC(year, month - 2, 1)).toISOString().slice(0, 7);
 }
 
+// Vietnamese date formats. "18 tháng 11, 2026"
 export function formatDay(date: string) {
   const [year, month, day] = date.split("-").map(Number);
-  return `${day} ${MONTHS[month - 1]} ${year}`;
+  return `${day} tháng ${month}, ${year}`;
 }
 
+// "18/11"
 export function formatShort(date: string) {
   const [, month, day] = date.split("-").map(Number);
-  return `${day} ${MONTHS[month - 1].slice(0, 3)}`;
+  return `${day}/${month}`;
 }
 
-const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+// "Tháng 11/2026", for a "YYYY-MM" month
+export function formatMonth(month: string) {
+  const [year, number] = month.split("-").map(Number);
+  return `Tháng ${number}/${year}`;
+}
 
-// "Wednesday, 11 November"
-export function formatWeekday(date: string) {
+const WEEKDAYS = ["Chủ nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy"];
+
+// "Thứ Tư"
+export function weekdayName(date: string) {
   const [year, month, day] = date.split("-").map(Number);
-  return `${WEEKDAYS[new Date(Date.UTC(year, month - 1, day)).getUTCDay()]}, ${day} ${MONTHS[month - 1]}`;
+  return WEEKDAYS[new Date(Date.UTC(year, month - 1, day)).getUTCDay()];
 }
 
+// "Thứ Tư, 11 tháng 11"
+export function formatWeekday(date: string) {
+  const [, month, day] = date.split("-").map(Number);
+  return `${weekdayName(date)}, ${day} tháng ${month}`;
+}
+
+// "Hôm nay · 18:20", "Hôm qua · 12:30", "2/11 · 10:15"
 export function formatWhen(entry: Pick<HistoryEntry, "date" | "time">, today: string) {
-  const day = entry.date === today ? "Today" : entry.date === shiftDate(today, -1) ? "Yesterday" : formatShort(entry.date);
+  const day = entry.date === today ? "Hôm nay" : entry.date === shiftDate(today, -1) ? "Hôm qua" : formatShort(entry.date);
   return `${day} · ${entry.time}`;
 }
 

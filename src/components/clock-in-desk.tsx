@@ -5,30 +5,30 @@ import { addNetwork, removeNetwork, useAdminAttendance, type AttemptReason, type
 import { formatStamp } from "@/lib/history";
 
 const REASONS: Record<AttemptReason, string> = {
-  ok_office: "Office network",
-  ok_remote: "Remote work",
-  not_office_network: "Not on an office network",
-  no_client_ip: "Couldn't read the IP (check TRUSTED_PROXY)",
-  already_clocked_in: "Already clocked in",
-  already_clocked_out: "Already clocked out",
-  no_clock_in: "Clock-out without a clock-in",
+  ok_office: "Mạng văn phòng",
+  ok_remote: "Làm việc từ xa",
+  not_office_network: "Không ở mạng văn phòng",
+  no_client_ip: "Không đọc được địa chỉ IP (kiểm tra TRUSTED_PROXY)",
+  already_clocked_in: "Đã chấm vào trước đó",
+  already_clocked_out: "Đã chấm ra trước đó",
+  no_clock_in: "Chấm ra khi chưa chấm vào",
 };
 
 const NETWORK_ERRORS: Record<NetworkError, string> = {
-  invalid_range: "That isn't a valid IP address or range, e.g. 203.0.113.7 or 203.0.113.0/24.",
-  invalid_label: "Give the network a short name (up to 60 characters).",
-  duplicate: "That network is already on the list.",
-  no_client_ip: "Your own IP can't be read, so it can't be added automatically.",
+  invalid_range: "Địa chỉ IP hoặc dải IP không hợp lệ, ví dụ 203.0.113.7 hoặc 203.0.113.0/24.",
+  invalid_label: "Hãy đặt một cái tên ngắn cho mạng (tối đa 60 ký tự).",
+  duplicate: "Mạng này đã có trong danh sách.",
+  no_client_ip: "Không đọc được IP của bạn nên không thể thêm tự động.",
 };
 
 function device(userAgent: string | null) {
-  if (!userAgent) return "Unknown device";
+  if (!userAgent) return "Thiết bị không rõ";
   if (/iPhone|iPad/.test(userAgent)) return "iPhone/iPad";
   if (/Android/.test(userAgent)) return "Android";
   if (/Windows/.test(userAgent)) return "Windows";
   if (/Macintosh/.test(userAgent)) return "Mac";
   if (/node|curl|undici/i.test(userAgent)) return "Script";
-  return "Other";
+  return "Khác";
 }
 
 function ModeBanner({ mode }: { mode: "cloudflare" | "local-demo" | null }) {
@@ -36,20 +36,20 @@ function ModeBanner({ mode }: { mode: "cloudflare" | "local-demo" | null }) {
   if (mode === "local-demo") {
     return (
       <p className="desk-banner warn">
-        <strong>Local demo mode.</strong> IP addresses are read without a trusted proxy, so a browser could fake them. Fine for trying it out; for the real trial, run behind the Cloudflare Tunnel with <code>TRUSTED_PROXY=cloudflare</code>.
+        <strong>Chế độ demo cục bộ.</strong> Địa chỉ IP được đọc mà không qua proxy tin cậy, nên trình duyệt có thể giả mạo. Dùng để thử là được; khi chạy thật, hãy chạy sau Cloudflare Tunnel với <code>TRUSTED_PROXY=cloudflare</code>.
       </p>
     );
   }
   return (
     <p className="desk-banner error">
-      <strong>Not configured.</strong> The server doesn&apos;t know where visitor IPs come from, so every clock-in is refused. Set <code>TRUSTED_PROXY=cloudflare</code>.
+      <strong>Chưa cấu hình.</strong> Máy chủ không biết lấy IP của người truy cập từ đâu nên mọi lần chấm công đều bị từ chối. Hãy đặt <code>TRUSTED_PROXY=cloudflare</code>.
     </p>
   );
 }
 
 export function ClockInDesk() {
   const { today, ipMode, you, networks, attempts } = useAdminAttendance();
-  const [label, setLabel] = useState("Office Wi-Fi");
+  const [label, setLabel] = useState("Wi-Fi văn phòng");
   const [cidr, setCidr] = useState("");
   const [error, setError] = useState<string | null>(null);
   const youAreListed = networks.some((network) => network.cidr === you.network);
@@ -70,30 +70,30 @@ export function ClockInDesk() {
     <>
       <section className="admin-section" aria-labelledby="networks-heading">
         <div className="admin-section-head">
-          <h2 id="networks-heading">Office networks</h2>
-          <p>Clock-ins only count as &ldquo;in the office&rdquo; from these internet connections.</p>
+          <h2 id="networks-heading">Mạng văn phòng</h2>
+          <p>Chấm công chỉ được tính là &ldquo;ở văn phòng&rdquo; khi đến từ các kết nối internet này.</p>
         </div>
         <ModeBanner mode={ipMode} />
 
         <div className="desk-card">
           <div className="desk-you">
-            <span>You&apos;re connecting from</span>
-            <strong>{you.ip ?? "unknown"}</strong>
-            {you.network && <small>{youAreListed ? "This network is already on the list." : `Network ${you.network}`}</small>}
+            <span>Bạn đang kết nối từ</span>
+            <strong>{you.ip ?? "không rõ"}</strong>
+            {you.network && <small>{youAreListed ? "Mạng này đã có trong danh sách." : `Mạng ${you.network}`}</small>}
           </div>
           <form className="desk-form" onSubmit={addTyped}>
             <label>
-              <span>Name</span>
+              <span>Tên</span>
               <input value={label} onChange={(event) => setLabel(event.target.value)} maxLength={60} required />
             </label>
             <label>
-              <span>IP or range</span>
+              <span>IP hoặc dải IP</span>
               <input value={cidr} onChange={(event) => setCidr(event.target.value)} placeholder="203.0.113.0/24" />
             </label>
             <div className="desk-buttons">
-              <button type="submit" className="desk-secondary" disabled={cidr.trim() === ""}>Add range</button>
+              <button type="submit" className="desk-secondary" disabled={cidr.trim() === ""}>Thêm dải IP</button>
               <button type="button" className="desk-primary" onClick={addCurrent} disabled={!you.network || youAreListed}>
-                Add the network I&apos;m on
+                Thêm mạng tôi đang dùng
               </button>
             </div>
           </form>
@@ -101,7 +101,7 @@ export function ClockInDesk() {
         </div>
 
         <ul className="admin-list">
-          {networks.length === 0 && <li className="admin-row desk-empty">No office networks yet. Nobody can clock in from the office until one is added.</li>}
+          {networks.length === 0 && <li className="admin-row desk-empty">Chưa có mạng văn phòng nào. Chưa ai chấm công từ văn phòng được cho đến khi thêm một mạng.</li>}
           {networks.map((network) => (
             <li className="admin-row" key={network.id}>
               <div className="admin-who">
@@ -109,11 +109,11 @@ export function ClockInDesk() {
                 <span>{network.cidr}</span>
               </div>
               <div className="admin-detail">
-                <span>{network.addedBy === "system" ? "Built in" : `Added by ${network.addedBy}`}</span>
+                <span>{network.addedBy === "system" ? "Có sẵn" : `Thêm bởi ${network.addedBy}`}</span>
                 <span>{today ? formatStamp(network.addedAt, today) : network.addedAt}</span>
               </div>
               <div className="admin-actions">
-                <button className="reject" aria-label={`Remove ${network.label}`} onClick={() => removeNetwork(network.id)}>Remove</button>
+                <button className="reject" aria-label={`Xoá ${network.label}`} onClick={() => removeNetwork(network.id)}>Xoá</button>
               </div>
             </li>
           ))}
@@ -122,23 +122,23 @@ export function ClockInDesk() {
 
       <section className="admin-section" aria-labelledby="attempts-heading">
         <div className="admin-section-head">
-          <h2 id="attempts-heading">Clock-in log</h2>
-          <p>Every attempt, including refused ones. The first place to look when someone can&apos;t clock in.</p>
+          <h2 id="attempts-heading">Nhật ký chấm công</h2>
+          <p>Mọi lần chấm, kể cả bị từ chối. Nơi đầu tiên cần xem khi có người không chấm công được.</p>
         </div>
         <ul className="admin-list">
-          {attempts.length === 0 && <li className="admin-row desk-empty">No clock-ins yet today.</li>}
+          {attempts.length === 0 && <li className="admin-row desk-empty">Hôm nay chưa có lần chấm công nào.</li>}
           {attempts.map((attempt) => (
             <li className="admin-row" key={attempt.id}>
               <div className="admin-who">
                 <strong>{attempt.name}</strong>
-                <span>{attempt.kind === "clock_in" ? "Clock in" : "Clock out"} · {today ? formatStamp(attempt.at, today) : attempt.at}</span>
+                <span>{attempt.kind === "clock_in" ? "Chấm vào" : "Chấm ra"} · {today ? formatStamp(attempt.at, today) : attempt.at}</span>
               </div>
               <div className="admin-detail">
                 <span>{REASONS[attempt.reason]}</span>
-                <span title={attempt.userAgent ?? undefined}>{attempt.ip ?? "no IP"} · {device(attempt.userAgent)}</span>
+                <span title={attempt.userAgent ?? undefined}>{attempt.ip ?? "không có IP"} · {device(attempt.userAgent)}</span>
               </div>
               <div className="admin-decided">
-                <span className={`chip ${attempt.accepted ? "approved" : "rejected"}`}>{attempt.accepted ? "Accepted" : "Refused"}</span>
+                <span className={`chip ${attempt.accepted ? "approved" : "rejected"}`}>{attempt.accepted ? "Chấp nhận" : "Từ chối"}</span>
               </div>
             </li>
           ))}

@@ -4,58 +4,49 @@ import Link from "next/link";
 import { useState } from "react";
 import { AppRail } from "@/components/app-rail";
 import { SignOutButton } from "@/components/sign-out-button";
-import { formatDay } from "@/lib/history";
+import { formatDay, formatMonth as monthLabel, formatShort as shortDate, weekdayName } from "@/lib/history";
 import { HONOUR_TITLES } from "@/lib/honours";
 import { weekdayIndex, type DayInfo, type DayKind } from "@/lib/progress";
 import { useProgress } from "@/lib/progress-store";
 import { useMe } from "@/lib/session";
 
-const WEEKDAY_HEADERS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const WEEKDAY_HEADERS = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
 
 const KIND_LABELS: Record<DayKind, string> = {
   perfect: "Perfect Day",
-  attended: "Attended",
-  in_progress: "Clocked in",
-  no_record: "No record",
-  leave: "Approved leave",
-  holiday: "Holiday",
-  upcoming: "Upcoming",
-  weekend: "Weekend",
+  attended: "Có đi làm",
+  in_progress: "Đã chấm vào",
+  no_record: "Không có dữ liệu",
+  leave: "Nghỉ phép đã duyệt",
+  holiday: "Nghỉ lễ",
+  upcoming: "Sắp tới",
+  weekend: "Cuối tuần",
 };
 
 const LEGEND: DayKind[] = ["perfect", "attended", "leave", "no_record", "upcoming"];
 
-function utcDate(date: string) {
-  const [year, month, day] = date.split("-").map(Number);
-  return new Date(Date.UTC(year, month - 1, day));
-}
-
-const weekdayName = (date: string) => utcDate(date).toLocaleDateString("en-GB", { weekday: "long", timeZone: "UTC" });
-const monthLabel = (month: string) => utcDate(`${month}-01`).toLocaleDateString("en-GB", { month: "long", year: "numeric", timeZone: "UTC" });
-const shortDate = (date: string) => utcDate(date).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
-
 function dayNote(day: DayInfo, today: string, shift: { start: string; end: string }, window: { clockIn: string; clockOut: string }) {
   switch (day.kind) {
     case "perfect":
-      return "You arrived and left inside your schedule window.";
+      return "Bạn đến và về đúng trong khung giờ làm việc.";
     case "attended":
-      if (day.reason === "late_arrival") return `You arrived after ${shift.start}, so there was no Perfect Day bonus. Your attendance still counts.`;
-      if (day.reason === "arrived_outside_window") return `You arrived before the Perfect Day window (${window.clockIn}). Your attendance still counts.`;
-      if (day.reason === "early_departure") return `You left before ${shift.end}, so there was no Perfect Day bonus. Your attendance still counts.`;
-      if (day.reason === "left_outside_window") return `You stayed past the Perfect Day window (${window.clockOut}). Your attendance still counts.`;
-      return "No clock-out was recorded for this day. HR can correct a missed punch.";
+      if (day.reason === "late_arrival") return `Bạn đến sau ${shift.start} nên không có thưởng Perfect Day. Ngày công vẫn được tính.`;
+      if (day.reason === "arrived_outside_window") return `Bạn đến trước khung giờ Perfect Day (${window.clockIn}). Ngày công vẫn được tính.`;
+      if (day.reason === "early_departure") return `Bạn về trước ${shift.end} nên không có thưởng Perfect Day. Ngày công vẫn được tính.`;
+      if (day.reason === "left_outside_window") return `Bạn ở lại quá khung giờ Perfect Day (${window.clockOut}). Ngày công vẫn được tính.`;
+      return "Ngày này chưa có lần chấm ra. HR có thể sửa nếu bạn quên chấm.";
     case "in_progress":
-      return `You're clocked in. A Perfect Day needs a clock-out ${window.clockOut}.`;
+      return `Bạn đã chấm vào. Perfect Day cần chấm ra trong khung ${window.clockOut}.`;
     case "no_record":
-      return "No punches were recorded for this day.";
+      return "Ngày này không có lần chấm công nào.";
     case "leave":
-      return "Approved leave. It doesn't affect your progress.";
+      return "Nghỉ phép đã duyệt. Không ảnh hưởng đến tiến độ của bạn.";
     case "holiday":
-      return "Company holiday. It doesn't affect your progress.";
+      return "Nghỉ lễ của công ty. Không ảnh hưởng đến tiến độ của bạn.";
     case "upcoming":
-      return day.date === today ? "You haven't clocked in yet today." : "An upcoming scheduled shift.";
+      return day.date === today ? "Hôm nay bạn chưa chấm vào." : "Ca làm việc sắp tới.";
     default:
-      return "Not a scheduled day.";
+      return "Không phải ngày làm việc.";
   }
 }
 
@@ -81,31 +72,31 @@ export default function ProgressPage() {
 
         <div className="pg-intro">
           <div>
-            <p className="section-kicker">YOUR PROGRESS</p>
+            <p className="section-kicker">TIẾN ĐỘ CỦA BẠN</p>
             <h1>{progress.month && monthLabel(progress.month)}</h1>
           </div>
-          <span className="pg-pill">Personal progress</span>
+          <span className="pg-pill">Tiến độ cá nhân</span>
         </div>
-        <p className="pg-note">This page is just about you. It isn&apos;t compared with anyone else.</p>
+        <p className="pg-note">Trang này chỉ nói về bạn. Không so sánh với bất kỳ ai khác.</p>
 
         <div className="pg-stats">
-          <div className="pg-stat"><strong>{stats.perfectDays}</strong><span>Perfect Days</span></div>
-          <div className="pg-stat"><strong>{stats.scheduledShifts}</strong><span>Scheduled shifts</span></div>
-          <div className="pg-stat"><strong>{stats.milestonesReached}</strong><span>Milestones reached</span></div>
+          <div className="pg-stat"><strong>{stats.perfectDays}</strong><span>Perfect Day</span></div>
+          <div className="pg-stat"><strong>{stats.scheduledShifts}</strong><span>Ca làm việc</span></div>
+          <div className="pg-stat"><strong>{stats.milestonesReached}</strong><span>Mốc đã đạt</span></div>
         </div>
 
         <section className="pg-section" aria-labelledby="attendance-heading">
-          <h2 id="attendance-heading">Monthly attendance</h2>
+          <h2 id="attendance-heading">Chuyên cần trong tháng</h2>
           <div className="pg-card">
             <div className="pg-meter-head">
-              <span>{stats.attended} of {stats.scheduledToDate} scheduled shifts so far</span>
+              <span>{stats.attended} / {stats.scheduledToDate} ca làm việc tính đến nay</span>
               <b>{percent}%</b>
             </div>
-            <div className="pg-bar" role="img" aria-label={`${stats.attended} of ${stats.scheduledToDate} scheduled shifts attended so far`}>
+            <div className="pg-bar" role="img" aria-label={`Đã đi làm ${stats.attended} trên ${stats.scheduledToDate} ca tính đến nay`}>
               <i style={{ width: `${percent}%` }} />
             </div>
 
-            <div className="cal-grid" role="group" aria-label={`Attendance calendar for ${progress.month && monthLabel(progress.month)}`}>
+            <div className="cal-grid" role="group" aria-label={`Lịch chuyên cần ${progress.month && monthLabel(progress.month)}`}>
               {WEEKDAY_HEADERS.map((label) => (
                 <span className="cal-head" key={label}>{label}</span>
               ))}
@@ -120,7 +111,7 @@ export default function ProgressPage() {
                     key={day.date}
                     className={`cal-day ${day.kind} ${day.date === today ? "today" : ""} ${isSelected ? "selected" : ""}`}
                     aria-pressed={isSelected}
-                    aria-label={`${weekdayName(day.date)} ${number} ${monthLabel(progress.month)}: ${KIND_LABELS[day.kind]}`}
+                    aria-label={`${weekdayName(day.date)} ngày ${number}, ${monthLabel(progress.month)}: ${KIND_LABELS[day.kind]}`}
                     disabled={day.kind === "weekend"}
                     onClick={() => setSelected(day.date)}
                   >
@@ -131,7 +122,7 @@ export default function ProgressPage() {
               })}
             </div>
 
-            <ul className="cal-legend" aria-label="Calendar key">
+            <ul className="cal-legend" aria-label="Chú thích lịch">
               {LEGEND.map((kind) => (
                 <li key={kind}><i className={`cal-swatch ${kind}`} /> {KIND_LABELS[kind]}</li>
               ))}
@@ -144,8 +135,8 @@ export default function ProgressPage() {
                   <span className={`cal-chip ${selectedDay.kind}`}>{KIND_LABELS[selectedDay.kind]}</span>
                 </div>
                 <dl>
-                  <div><dt>Clocked in</dt><dd>{selectedDay.clockIn ?? "—"}</dd></div>
-                  <div><dt>Clocked out</dt><dd>{selectedDay.clockOut ?? "—"}</dd></div>
+                  <div><dt>Giờ vào</dt><dd>{selectedDay.clockIn ?? "—"}</dd></div>
+                  <div><dt>Giờ ra</dt><dd>{selectedDay.clockOut ?? "—"}</dd></div>
                 </dl>
                 <p>{dayNote(selectedDay, today, shift, window)}</p>
               </div>
@@ -154,55 +145,55 @@ export default function ProgressPage() {
         </section>
 
         <section className="pg-section" aria-labelledby="punctuality-heading">
-          <h2 id="punctuality-heading">Perfect Days and punctuality</h2>
+          <h2 id="punctuality-heading">Perfect Day và đúng giờ</h2>
           <div className="pg-pair">
             <div className="pg-card">
               <p className="pg-big">{stats.perfectDays}</p>
-              <p className="pg-label">Perfect Days this month</p>
-              <p className="pg-hint">Clock in {window.clockIn} and out {window.clockOut}.</p>
+              <p className="pg-label">Perfect Day trong tháng này</p>
+              <p className="pg-hint">Chấm vào {window.clockIn} và chấm ra {window.clockOut}.</p>
             </div>
             <div className="pg-card">
-              <p className="pg-big">{stats.arrivedByStart} <small>of {stats.attended}</small></p>
-              <p className="pg-label">Days you arrived by {shift.start}</p>
-              <p className="pg-hint">Based on your own shift, {shift.start}–{shift.end}.</p>
+              <p className="pg-big">{stats.arrivedByStart} <small>/ {stats.attended}</small></p>
+              <p className="pg-label">Ngày bạn đến trước {shift.start}</p>
+              <p className="pg-hint">Tính theo ca của riêng bạn, {shift.start}–{shift.end}.</p>
             </div>
           </div>
-          <p className="pg-fine">Missing a Perfect Day never removes credits you&apos;ve already earned, and approved leave isn&apos;t counted against you.</p>
+          <p className="pg-fine">Lỡ một Perfect Day không bao giờ làm mất credit bạn đã nhận, và nghỉ phép được duyệt không bị tính là vắng.</p>
         </section>
 
         <section className="pg-section" aria-labelledby="milestones-heading">
-          <h2 id="milestones-heading">Personal milestones</h2>
+          <h2 id="milestones-heading">Mốc cá nhân</h2>
           <div className="pg-card">
-            <ol className="ladder" aria-label="Perfect Days milestones this month">
+            <ol className="ladder" aria-label="Các mốc Perfect Day trong tháng này">
               {milestones.ladder.map((step) => (
                 <li className={`ladder-step ${step.reached ? "reached" : ""} ${milestones.next?.target === step.target ? "next" : ""}`} key={step.target}>
                   <span className="ladder-dot">{step.reached ? <CheckIcon /> : step.target}</span>
-                  <span>{step.target} days</span>
+                  <span>{step.target} ngày</span>
                 </li>
               ))}
             </ol>
 
             {milestones.next ? (
               <div className="pg-next">
-                <p className="pg-next-title">{milestones.next.target} Perfect Days</p>
+                <p className="pg-next-title">{milestones.next.target} Perfect Day</p>
                 <p>
-                  {milestones.next.remaining} more Perfect {milestones.next.remaining === 1 ? "Day" : "Days"} to reach your next milestone.
-                  It adds {milestones.next.credits} credits.
+                  Còn {milestones.next.remaining} Perfect Day nữa là đến mốc tiếp theo.
+                  Mốc này thưởng thêm {milestones.next.credits} credit.
                 </p>
-                <div className="pg-bar" role="img" aria-label={`${stats.perfectDays} of ${milestones.next.target} Perfect Days`}>
+                <div className="pg-bar" role="img" aria-label={`${stats.perfectDays} trên ${milestones.next.target} Perfect Day`}>
                   <i style={{ width: `${Math.min(100, (stats.perfectDays / milestones.next.target) * 100)}%` }} />
                 </div>
               </div>
             ) : (
               <div className="pg-next">
-                <p className="pg-next-title">Every milestone reached</p>
-                <p>You&apos;ve reached all of this month&apos;s Perfect Day milestones.</p>
+                <p className="pg-next-title">Đã đạt mọi mốc</p>
+                <p>Bạn đã đạt tất cả các mốc Perfect Day của tháng này.</p>
               </div>
             )}
 
-            <h3 className="pg-subhead">Reached this month</h3>
+            <h3 className="pg-subhead">Đã đạt trong tháng này</h3>
             {milestones.reached.length === 0 ? (
-              <p className="pg-empty">Your first milestone is {milestones.next?.target ?? 5} Perfect Days away.</p>
+              <p className="pg-empty">Mốc đầu tiên của bạn là {milestones.next?.target ?? 5} Perfect Day.</p>
             ) : (
               <ul className="pg-rows">
                 {milestones.reached.map((item) => (
@@ -218,47 +209,47 @@ export default function ProgressPage() {
         </section>
 
         <section className="pg-section" aria-labelledby="honour-heading">
-          <h2 id="honour-heading">Honour wall</h2>
+          <h2 id="honour-heading">Bảng vinh danh</h2>
           <div className="pg-card pg-honour">
             <span className="pg-honour-icon" aria-hidden="true">{progress.honour.tier ? HONOUR_TITLES[progress.honour.tier].icon : "🌱"}</span>
             <div>
               {progress.honour.tier ? (
                 <>
-                  <strong>{progress.honour.daysSoFar === 0 ? "A fresh month" : `On track for: ${HONOUR_TITLES[progress.honour.tier].title}`}</strong>
+                  <strong>{progress.honour.daysSoFar === 0 ? "Một tháng mới" : `Bạn đang trên đà đạt: ${HONOUR_TITLES[progress.honour.tier].title}`}</strong>
                   <p>
                     {progress.honour.daysSoFar === 0
-                      ? "Every working day this month a Perfect Day puts you on the wall as a Perfect month."
-                      : `${HONOUR_TITLES[progress.honour.tier].description} ${progress.honour.daysLeft} working ${progress.honour.daysLeft === 1 ? "day" : "days"} to go.`}
+                      ? "Mỗi ngày làm việc trong tháng là một Perfect Day sẽ đưa bạn lên bảng vinh danh với danh hiệu Tháng hoàn hảo."
+                      : `${HONOUR_TITLES[progress.honour.tier].description} Còn ${progress.honour.daysLeft} ngày làm việc.`}
                   </p>
                 </>
               ) : (
                 <>
-                  <strong>Next month is a fresh start</strong>
-                  <p>A missed day means no honour-wall level this month. Every Perfect Day still earns its credits.</p>
+                  <strong>Tháng sau là một khởi đầu mới</strong>
+                  <p>Lỡ một ngày nghĩa là tháng này chưa có danh hiệu trên bảng vinh danh. Mỗi Perfect Day vẫn được cộng credit.</p>
                 </>
               )}
-              <p className="pg-hint">Only you see this. The wall shows finished months, with no ranking.</p>
+              <p className="pg-hint">Chỉ bạn thấy mục này. Bảng vinh danh chỉ hiển thị các tháng đã kết thúc, không xếp hạng.</p>
             </div>
-            <Link className="pg-link" href="/honours">See the wall</Link>
+            <Link className="pg-link" href="/honours">Xem bảng vinh danh</Link>
           </div>
         </section>
 
         <section className="pg-section" aria-labelledby="reward-heading">
-          <h2 id="reward-heading">Next reward</h2>
+          <h2 id="reward-heading">Phần thưởng tiếp theo</h2>
           <div className="pg-card pg-reward">
             <span className="pg-reward-icon">{reward.icon}</span>
             <div className="pg-reward-main">
               <strong>{reward.name}</strong>
-              <p>{reward.remaining === 0 ? "You have enough credits to redeem this." : `${reward.remaining} credits to go`} · {reward.balance} of {reward.cost}</p>
-              <div className="pg-bar" role="img" aria-label={`${reward.balance} of ${reward.cost} credits`}>
+              <p>{reward.remaining === 0 ? "Bạn đã đủ credit để đổi phần thưởng này." : `Còn ${reward.remaining} credit`} · {reward.balance} / {reward.cost}</p>
+              <div className="pg-bar" role="img" aria-label={`${reward.balance} trên ${reward.cost} credit`}>
                 <i style={{ width: `${reward.cost > 0 ? Math.min(100, (reward.balance / reward.cost) * 100) : 0}%` }} />
               </div>
             </div>
-            <Link className="pg-link" href="/rewards">See rewards</Link>
+            <Link className="pg-link" href="/rewards">Xem quà tặng</Link>
           </div>
         </section>
 
-        <p className="history-note">Fictional prototype data.</p>
+        <p className="history-note">Dữ liệu giả lập.</p>
       </section>
     </main>
   );

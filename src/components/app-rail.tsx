@@ -21,23 +21,23 @@ export function AppRail({ active }: { active: "today" | "progress" | "rewards" |
           <>
             <Link className={`nav-item ${active === "today" ? "active" : ""}`} href="/">
               <HomeIcon />
-              <span>Today</span>
+              <span>Hôm nay</span>
             </Link>
             <Link className={`nav-item ${active === "progress" ? "active" : ""}`} href="/progress">
               <ChartIcon />
-              <span>Progress</span>
+              <span>Tiến độ</span>
             </Link>
             <Link className={`nav-item ${active === "rewards" ? "active" : ""}`} href="/rewards">
               <GiftIcon />
-              <span>Rewards</span>
+              <span>Quà tặng</span>
             </Link>
             <Link className={`nav-item ${active === "history" ? "active" : ""}`} href="/history">
               <HistoryIcon />
-              <span>History</span>
+              <span>Lịch sử</span>
             </Link>
             <Link className={`nav-item ${active === "honours" ? "active" : ""}`} href="/honours">
               <StarIcon />
-              <span>Honours</span>
+              <span>Vinh danh</span>
             </Link>
           </>
         )}
@@ -45,18 +45,18 @@ export function AppRail({ active }: { active: "today" | "progress" | "rewards" |
           <>
             <Link className={`nav-item ${active === "attendance" ? "active" : ""}`} href="/admin/attendance">
               <ClipboardIcon />
-              <span>Attendance</span>
+              <span>Chấm công</span>
             </Link>
             <Link className={`nav-item ${active === "admin" ? "active" : ""}`} href="/admin">
               <BriefcaseIcon />
-              <span>Admin</span>
+              <span>Quản trị</span>
             </Link>
           </>
         )}
       </nav>
 
       <div className="rail-bottom">
-        <span className="demo-pill"><i /> Demo data</span>
+        <span className="demo-pill"><i /> Dữ liệu demo</span>
         <div className="rail-user">
           <div className="avatar" role="img" aria-label={me.name}>{initials(me.name)}</div>
           <SignOutButton className="rail-signout" />

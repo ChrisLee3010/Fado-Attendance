@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { isWeekday, nextWorkday, now, previousWorkdays, shiftDate } from "../src/lib/server/clock.ts";
-import { formatStamp, formatWeekday } from "../src/lib/history.ts";
+import { formatMonth, formatStamp, formatWeekday } from "../src/lib/history.ts";
 
 test("the fictional history lands on the working days before today, skipping weekends", () => {
   assert.deepEqual(previousWorkdays("2026-11-11", 7), [
@@ -51,8 +51,10 @@ test("the test clock is ignored unless WORKDAY_TEST_CLOCK=1", async () => {
 });
 
 test("stored stamps are shown relative to today", () => {
-  assert.equal(formatStamp("2026-11-11 09:40", "2026-11-11"), "Today · 09:40");
-  assert.equal(formatStamp("2026-11-10 12:30", "2026-11-11"), "Yesterday · 12:30");
-  assert.equal(formatStamp("2026-11-02 10:15", "2026-11-11"), "2 Nov · 10:15");
-  assert.equal(formatWeekday("2026-11-17"), "Tuesday, 17 November");
+  assert.equal(formatStamp("2026-11-11 09:40", "2026-11-11"), "Hôm nay · 09:40");
+  assert.equal(formatStamp("2026-11-10 12:30", "2026-11-11"), "Hôm qua · 12:30");
+  assert.equal(formatStamp("2026-11-02 10:15", "2026-11-11"), "2/11 · 10:15");
+  assert.equal(formatWeekday("2026-11-17"), "Thứ Ba, 17 tháng 11");
+  assert.equal(formatWeekday("2026-11-15"), "Chủ nhật, 15 tháng 11");
+  assert.equal(formatMonth("2026-11"), "Tháng 11/2026");
 });

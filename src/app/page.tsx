@@ -11,7 +11,7 @@ import { useMe } from "@/lib/session";
 import { nextRewardTarget } from "@/lib/reward-target";
 import { clockIn, clockOut, useWallet, type Location, type PunchError } from "@/lib/wallet";
 
-const WEEKDAY_LETTERS = ["M", "T", "W", "T", "F"];
+const WEEKDAY_LETTERS = ["T2", "T3", "T4", "T5", "T6"];
 
 function weekOf(today: string) {
   const [year, month, day] = today.split("-").map(Number);
@@ -20,18 +20,18 @@ function weekOf(today: string) {
 }
 
 function greeting(time: string) {
-  if (time < "12:00") return "Good morning";
-  if (time < "18:00") return "Good afternoon";
-  return "Good evening";
+  if (time < "12:00") return "Chào buổi sáng";
+  if (time < "18:00") return "Chào buổi chiều";
+  return "Chào buổi tối";
 }
 
 function refusalMessage(error: PunchError, ip: string | null) {
   if (error === "not_office_network") {
-    return `You don't seem to be on the office network${ip ? ` (your connection shows up as ${ip})` : ""}. Connect to the office Wi-Fi. If you're using a VPN, turn it off and try again.`;
+    return `Có vẻ bạn chưa kết nối mạng văn phòng${ip ? ` (kết nối của bạn hiện là ${ip})` : ""}. Hãy kết nối Wi-Fi văn phòng. Nếu đang dùng VPN, hãy tắt VPN rồi thử lại.`;
   }
-  if (error === "no_client_ip") return "We couldn't tell which network you're on. Please let HR know so they can check the app's setup.";
-  if (error === "no_clock_in") return "There's no clock-in for today to close.";
-  return "Couldn't reach the server. Check your connection and try again.";
+  if (error === "no_client_ip") return "Không xác định được bạn đang ở mạng nào. Vui lòng báo HR để kiểm tra cài đặt ứng dụng.";
+  if (error === "no_clock_in") return "Hôm nay chưa có lần chấm vào để chấm ra.";
+  return "Không kết nối được máy chủ. Hãy kiểm tra mạng và thử lại.";
 }
 
 // One button: clock in, then clock out. Leaving before the shift ends costs the Perfect Day, so it takes a second tap.
@@ -68,9 +68,9 @@ function usePunch(clockedIn: boolean, shiftEnd: string, now: string) {
 
 function LocationNote({ location, clockedOut }: { location: Location; clockedOut: boolean }) {
   if (clockedOut) return null;
-  if (location.verdict === "office") return <p className="location-note ok"><span /> On the office network{location.network ? ` · ${location.network}` : ""}</p>;
-  if (location.verdict === "remote") return <p className="location-note remote"><span /> Outside the office · will be recorded as remote work</p>;
-  return <p className="location-note blocked"><span /> Not on the office network{location.ip ? ` · ${location.ip}` : ""}</p>;
+  if (location.verdict === "office") return <p className="location-note ok"><span /> Đang ở mạng văn phòng{location.network ? ` · ${location.network}` : ""}</p>;
+  if (location.verdict === "remote") return <p className="location-note remote"><span /> Ngoài văn phòng · sẽ được ghi nhận là làm việc từ xa</p>;
+  return <p className="location-note blocked"><span /> Chưa ở mạng văn phòng{location.ip ? ` · ${location.ip}` : ""}</p>;
 }
 
 export default function Home() {
@@ -89,33 +89,33 @@ export default function Home() {
   const clockedIn = !!state.clockIn;
   const punch = usePunch(clockedIn, state.shift.end, state.now);
   const onTrack = state.arrival === "on_time";
-  const arrivalText = onTrack ? "Right on time" : state.arrival === "late" ? `After ${state.shift.start}` : "Before the Perfect Day window";
-  const arrivalNote = !clockedIn ? "Not yet" : state.clockInMode === "remote" ? `Remote · ${arrivalText}` : arrivalText;
+  const arrivalText = onTrack ? "Đúng giờ" : state.arrival === "late" ? `Sau ${state.shift.start}` : "Trước khung giờ Perfect Day";
+  const arrivalNote = !clockedIn ? "Chưa chấm" : state.clockInMode === "remote" ? `Từ xa · ${arrivalText}` : arrivalText;
   const heading = !clockedIn
-    ? "Not clocked in yet."
+    ? "Bạn chưa chấm công."
     : clockedOut
-      ? (state.perfectDay ? "A perfect day." : "Day complete.")
-      : onTrack ? "You're on track." : "You're checked in.";
+      ? (state.perfectDay ? "Một ngày hoàn hảo." : "Hoàn thành ngày làm việc.")
+      : onTrack ? "Bạn đang đúng hướng." : "Bạn đã chấm vào.";
   const footer = punch.refusal
     ? punch.refusal
     : !clockedIn
-    ? `Clock in ${state.window.clockIn} to start a Perfect Day. Your attendance counts whenever you arrive.`
+    ? `Chấm vào trong khung ${state.window.clockIn} để bắt đầu một Perfect Day. Ngày công vẫn được tính dù bạn đến lúc nào.`
     : clockedOut
       ? state.perfectDay
-        ? "Your attendance window qualified. 2 credits added to your wallet."
-        : `Your attendance is recorded. A Perfect Day needs a clock-in ${state.window.clockIn} and a clock-out ${state.window.clockOut}.`
+        ? "Bạn đạt khung giờ Perfect Day. Đã cộng 2 credit vào ví."
+        : `Ngày công đã được ghi nhận. Perfect Day cần chấm vào trong khung ${state.window.clockIn} và chấm ra trong khung ${state.window.clockOut}.`
       : punch.confirming
-        ? `It's before ${state.shift.end}, so today won't count as a Perfect Day. Tap again to clock out anyway.`
+        ? `Chưa đến ${state.shift.end}, nên hôm nay sẽ không tính là Perfect Day. Bấm lần nữa để vẫn chấm ra.`
         : onTrack
-          ? `Clock out between ${state.window.clockOut} to earn your Perfect Day credit.`
-          : `Today's Perfect Day needs a clock-in ${state.window.clockIn}, but your attendance still counts.`;
+          ? `Chấm ra trong khung ${state.window.clockOut} để nhận credit Perfect Day.`
+          : `Perfect Day hôm nay cần chấm vào trong khung ${state.window.clockIn}, nhưng ngày công của bạn vẫn được tính.`;
   const buttonLabel = clockedOut
-    ? <><CheckIcon /> {state.perfectDay ? "2 credits earned" : "Attendance recorded"}</>
+    ? <><CheckIcon /> {state.perfectDay ? "Đã nhận 2 credit" : "Đã ghi nhận công"}</>
     : !clockedIn
-      ? <><ClockIcon /> {punch.busy ? "Clocking in…" : "Clock in"}</>
+      ? <><ClockIcon /> {punch.busy ? "Đang chấm vào…" : "Chấm vào"}</>
       : punch.confirming
-        ? <><ClockIcon /> Tap again to leave early</>
-        : <><ClockIcon /> {punch.early ? "Clock out early" : "Clock out"}</>;
+        ? <><ClockIcon /> Bấm lần nữa để về sớm</>
+        : <><ClockIcon /> {punch.early ? "Chấm ra sớm" : "Chấm ra"}</>;
 
   return (
     <main className={`app-shell ${state.loaded && me.loaded ? "" : "is-loading"}`}>
@@ -129,35 +129,35 @@ export default function Home() {
 
         <div className="welcome-row">
           <div>
-            <p className="section-kicker">YOUR WORKDAY</p>
+            <p className="section-kicker">NGÀY LÀM VIỆC CỦA BẠN</p>
             <h1>{greeting(state.now)},<br />{me.firstName}.</h1>
           </div>
-          <p className="quiet-note">Keep it steady.<br />Small wins add up.</p>
+          <p className="quiet-note">Đều đặn nhé.<br />Từng bước nhỏ cộng lại thành điều lớn.</p>
         </div>
 
         <section className={`punch-card ${clockedOut ? "complete" : ""}`} aria-live="polite">
           <div className="ticket-header">
             <div>
-              <p className="section-kicker">TODAY&apos;S TIME CARD</p>
+              <p className="section-kicker">THẺ CÔNG HÔM NAY</p>
               <h2>{heading}</h2>
             </div>
             <div className="status-stamp">
               <span className="status-light" />
-              {clockedOut ? "COMPLETE" : clockedIn ? "IN PROGRESS" : "NOT STARTED"}
+              {clockedOut ? "HOÀN THÀNH" : clockedIn ? "ĐANG LÀM VIỆC" : "CHƯA BẮT ĐẦU"}
             </div>
           </div>
 
           <div className="punch-grid">
             <div className="punch-time">
-              <span>Clocked in</span>
+              <span>Giờ vào</span>
               <strong>{state.clockIn ?? "— — : — —"}</strong>
               <em>{arrivalNote}</em>
             </div>
             <div className="route-line" aria-hidden="true"><span /><span /></div>
             <div className="punch-time">
-              <span>Clocked out</span>
+              <span>Giờ ra</span>
               <strong>{state.clockOut ?? "— — : — —"}</strong>
-              <em>{clockedOut ? (state.perfectDay ? "Perfect Day earned" : "Attendance recorded") : `Eligible from ${state.shift.end}`}</em>
+              <em>{clockedOut ? (state.perfectDay ? "Đạt Perfect Day" : "Đã ghi nhận công") : `Chấm ra được từ ${state.shift.end}`}</em>
             </div>
           </div>
 
@@ -180,19 +180,19 @@ export default function Home() {
           <section className="streak-panel">
             <div className="panel-heading">
               <div>
-                <p className="section-kicker">THIS WEEK</p>
-                <h2>Your week</h2>
+                <p className="section-kicker">TUẦN NÀY</p>
+                <h2>Tuần của bạn</h2>
               </div>
-              <span className="streak-count">{weekPerfect} <small>Perfect {weekPerfect === 1 ? "Day" : "Days"}</small></span>
+              <span className="streak-count">{weekPerfect} <small>Perfect Day</small></span>
             </div>
-            <div className="week-row" aria-label={`${weekPerfect} Perfect ${weekPerfect === 1 ? "Day" : "Days"} this week`}>
+            <div className="week-row" aria-label={`${weekPerfect} Perfect Day trong tuần này`}>
               {WEEKDAY_LETTERS.map((letter, index) => {
                 const kind = week[index]?.kind ?? "upcoming";
                 const style = kind === "perfect" ? "earned" : kind === "attended" ? "attended" : kind === "in_progress" ? "current" : "";
                 return (
                   <div className={`day ${style}`} key={`${letter}-${index}`}>
                     <span>
-                      {kind === "perfect" ? <CheckIcon /> : kind === "attended" ? <i className="cal-dot" /> : kind === "leave" ? "L" : kind === "no_record" ? "–" : letter}
+                      {kind === "perfect" ? <CheckIcon /> : kind === "attended" ? <i className="cal-dot" /> : kind === "leave" ? "P" : kind === "no_record" ? "–" : letter}
                     </span>
                     <small>{letter}</small>
                   </div>
@@ -201,17 +201,17 @@ export default function Home() {
             </div>
             <p className="panel-note">
               {nextMilestone
-                ? `${nextMilestone.remaining} more Perfect ${nextMilestone.remaining === 1 ? "Day" : "Days"} to your next milestone. `
-                : "You've reached every milestone this month. "}
-              <Link href="/progress">See your progress</Link>
+                ? `Còn ${nextMilestone.remaining} Perfect Day nữa là đến mốc tiếp theo. `
+                : "Bạn đã đạt mọi mốc trong tháng này. "}
+              <Link href="/progress">Xem tiến độ</Link>
             </p>
           </section>
 
           <section className="wallet-panel" id="rewards">
             <div className="wallet-top">
               <div>
-                <p className="section-kicker">WALLET</p>
-                <h2>{credits} <span>credits</span></h2>
+                <p className="section-kicker">VÍ CREDIT</p>
+                <h2>{credits} <span>credit</span></h2>
               </div>
               <span className="wallet-icon"><WalletIcon /></span>
             </div>
@@ -219,7 +219,7 @@ export default function Home() {
               <div className="coffee-art">{target.icon}</div>
               <div>
                 <strong>{target.name}</strong>
-                <p>{credits >= target.cost ? "Ready to redeem" : `${target.cost - credits} credits to go`}</p>
+                <p>{credits >= target.cost ? "Sẵn sàng đổi quà" : `Còn ${target.cost - credits} credit`}</p>
               </div>
               <div className="target-ring" style={{ "--progress": `${progress}%` } as React.CSSProperties}>
                 <span>{progress}%</span>
@@ -231,16 +231,16 @@ export default function Home() {
         <section className="ledger-preview">
           <div className="ledger-heading">
             <div>
-              <p className="section-kicker">RECENT ACTIVITY</p>
-              <h2>Your credit trail</h2>
+              <p className="section-kicker">HOẠT ĐỘNG GẦN ĐÂY</p>
+              <h2>Lịch sử credit của bạn</h2>
             </div>
-            <Link className="text-button" href="/history">View all <span>↗</span></Link>
+            <Link className="text-button" href="/history">Xem tất cả <span>↗</span></Link>
           </div>
           {showPending && (
             <div className="ledger-entry">
               <span className="entry-icon green"><CheckIcon /></span>
-              <div><strong>{onTrack ? "On-time arrival" : "Checked in"}</strong><p>Today · {state.clockIn}</p></div>
-              <b className="pending">{onTrack ? "Pending" : "Recorded"}</b>
+              <div><strong>{onTrack ? "Đến đúng giờ" : "Đã chấm vào"}</strong><p>Hôm nay · {state.clockIn}</p></div>
+              <b className="pending">{onTrack ? "Đang chờ" : "Đã ghi nhận"}</b>
             </div>
           )}
           {recent.map((entry) => (

@@ -26,10 +26,10 @@ import { useMe } from "@/lib/session";
 import { useWallet } from "@/lib/wallet";
 
 const QUICK_FILTERS: { id: QuickFilter; label: string }[] = [
-  { id: "all", label: "All" },
-  { id: "earned", label: "Earned" },
-  { id: "spent", label: "Spent" },
-  { id: "adjustments", label: "Adjustments" },
+  { id: "all", label: "Tất cả" },
+  { id: "earned", label: "Đã nhận" },
+  { id: "spent", label: "Đã dùng" },
+  { id: "adjustments", label: "Điều chỉnh" },
 ];
 
 const PERIODS = Object.keys(PERIOD_LABELS) as Period[];
@@ -64,25 +64,25 @@ export default function HistoryPage() {
         </header>
 
         <div className="history-intro">
-          <p className="section-kicker">YOUR ACCOUNT</p>
-          <h1>Credit history</h1>
+          <p className="section-kicker">TÀI KHOẢN CỦA BẠN</p>
+          <h1>Lịch sử credit</h1>
         </div>
 
-        <section className="history-balance" aria-label="Current balance">
-          <p className="section-kicker">CURRENT BALANCE</p>
-          <h2>{balance} <span>credits</span></h2>
+        <section className="history-balance" aria-label="Số dư hiện tại">
+          <p className="section-kicker">SỐ DƯ HIỆN TẠI</p>
+          <h2>{balance} <span>credit</span></h2>
           <div className="history-balance-foot">
-            <span>Earned this month: {totals.earned > 0 ? `+${totals.earned}` : "0"}</span>
-            <span>Spent this month: {totals.spent > 0 ? `−${totals.spent}` : "0"}</span>
+            <span>Nhận trong tháng: {totals.earned > 0 ? `+${totals.earned}` : "0"}</span>
+            <span>Đã dùng trong tháng: {totals.spent > 0 ? `−${totals.spent}` : "0"}</span>
           </div>
         </section>
 
         <div className="history-head">
-          <h2>Transactions</h2>
-          <p className="history-count" aria-live="polite">{visible.length} {visible.length === 1 ? "transaction" : "transactions"}</p>
+          <h2>Giao dịch</h2>
+          <p className="history-count" aria-live="polite">{visible.length} giao dịch</p>
         </div>
 
-        <div className="chip-row" role="group" aria-label="Quick filters">
+        <div className="chip-row" role="group" aria-label="Bộ lọc nhanh">
           {QUICK_FILTERS.map((chip) => (
             <button
               key={chip.id}
@@ -97,16 +97,16 @@ export default function HistoryPage() {
 
         <div className="filter-row">
           <SelectMenu
-            label="Date range"
+            label="Khoảng thời gian"
             icon={<CalendarIcon />}
             value={hasCustomRange(filters) ? null : filters.period}
-            fallbackLabel="Custom range"
+            fallbackLabel="Tuỳ chọn"
             options={PERIODS.map((period) => ({ value: period, label: PERIOD_LABELS[period] }))}
             onChange={(period) => update({ period: period as Period, from: "", to: "" })}
           />
           <button
             className="filter-toggle"
-            aria-label="More filters"
+            aria-label="Thêm bộ lọc"
             aria-expanded={panelOpen}
             aria-controls="filter-panel"
             onClick={() => setPanelOpen((open) => !open)}
@@ -119,7 +119,7 @@ export default function HistoryPage() {
         {panelOpen && (
           <div className="filter-panel" id="filter-panel">
             <fieldset>
-              <legend>Transaction category</legend>
+              <legend>Loại giao dịch</legend>
               <div className="filter-options">
                 {CATEGORIES.map((category: Category) => (
                   <button
@@ -135,7 +135,7 @@ export default function HistoryPage() {
             </fieldset>
 
             <fieldset>
-              <legend>Status</legend>
+              <legend>Trạng thái</legend>
               <div className="filter-options">
                 {STATUSES.map((status) => (
                   <button
@@ -151,31 +151,31 @@ export default function HistoryPage() {
             </fieldset>
 
             <fieldset>
-              <legend>Custom date range</legend>
+              <legend>Khoảng ngày tuỳ chọn</legend>
               <div className="date-inputs">
                 <label>
-                  From
+                  Từ
                   <input type="date" value={filters.from} max={state.today} onChange={(event) => update({ from: event.target.value })} />
                 </label>
                 <label>
-                  To
+                  Đến
                   <input type="date" value={filters.to} max={state.today} onChange={(event) => update({ to: event.target.value })} />
                 </label>
               </div>
-              {invalidRange && <p className="filter-hint" role="alert">The start date is after the end date.</p>}
+              {invalidRange && <p className="filter-hint" role="alert">Ngày bắt đầu đang sau ngày kết thúc.</p>}
             </fieldset>
 
             <button className="filter-clear" onClick={() => setFilters(DEFAULT_FILTERS)} disabled={isDefault}>
-              Clear filters
+              Xoá bộ lọc
             </button>
           </div>
         )}
 
         {groups.length === 0 ? (
           <div className="history-empty">
-            <strong>No transactions match these filters</strong>
-            <p>Try a wider date range or clear the filters.</p>
-            <button className="filter-clear" onClick={() => setFilters(DEFAULT_FILTERS)} disabled={isDefault}>Clear filters</button>
+            <strong>Không có giao dịch nào khớp bộ lọc</strong>
+            <p>Hãy thử khoảng thời gian rộng hơn hoặc xoá bộ lọc.</p>
+            <button className="filter-clear" onClick={() => setFilters(DEFAULT_FILTERS)} disabled={isDefault}>Xoá bộ lọc</button>
           </div>
         ) : (
           groups.map((group) => (
@@ -202,7 +202,7 @@ export default function HistoryPage() {
           ))
         )}
 
-        <p className="history-note">Fictional prototype data.</p>
+        <p className="history-note">Dữ liệu giả lập.</p>
       </section>
     </main>
   );

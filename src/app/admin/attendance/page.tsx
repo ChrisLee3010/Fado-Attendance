@@ -8,30 +8,30 @@ import { formatWeekday } from "@/lib/history";
 import { useMe } from "@/lib/session";
 
 const CORRECTION_ERRORS: Record<CorrectionError, string> = {
-  unknown_employee: "That person doesn't exist.",
-  invalid_date: "Pick a valid date.",
-  future: "You can't record a time that hasn't happened yet.",
-  invalid_time: "Enter a time like 18:05.",
-  invalid_reason: "Write a short reason (3–200 characters). It's kept with the record.",
-  no_clock_in: "There's no clock-in that day. Add the clock-in first.",
-  out_before_in: "Clock-out has to be after clock-in.",
-  invalid_kind: "Choose clock in or clock out.",
+  unknown_employee: "Không có người này.",
+  invalid_date: "Hãy chọn một ngày hợp lệ.",
+  future: "Không thể ghi một giờ chưa xảy ra.",
+  invalid_time: "Hãy nhập giờ dạng 18:05.",
+  invalid_reason: "Hãy ghi một lý do ngắn (3–200 ký tự). Lý do được lưu cùng bản ghi.",
+  no_clock_in: "Ngày đó chưa có lần chấm vào. Hãy thêm giờ vào trước.",
+  out_before_in: "Giờ ra phải sau giờ vào.",
+  invalid_kind: "Hãy chọn chấm vào hoặc chấm ra.",
 };
 
 function statusChip(row: BoardRow) {
   switch (row.status) {
     case "no_shift":
-      return <span className="chip used">No shift</span>;
+      return <span className="chip used">Không có ca</span>;
     case "on_leave":
-      return <span className="chip issued">On leave</span>;
+      return <span className="chip issued">Nghỉ phép</span>;
     case "not_yet":
-      return <span className="chip used">Not yet</span>;
+      return <span className="chip used">Chưa đến giờ</span>;
     case "not_in":
-      return <span className="chip rejected">Not in · {row.minutesSinceStart} min</span>;
+      return <span className="chip rejected">Chưa vào · {row.minutesSinceStart} phút</span>;
     case "working":
-      return row.lateMinutes > 0 ? <span className="chip late">Late · {row.lateMinutes} min</span> : <span className="chip approved">On time</span>;
+      return row.lateMinutes > 0 ? <span className="chip late">Trễ · {row.lateMinutes} phút</span> : <span className="chip approved">Đúng giờ</span>;
     case "left":
-      return row.earlyMinutes > 0 ? <span className="chip late">Left {row.earlyMinutes} min early</span> : <span className="chip approved">Done</span>;
+      return row.earlyMinutes > 0 ? <span className="chip late">Về sớm {row.earlyMinutes} phút</span> : <span className="chip approved">Đã xong</span>;
   }
 }
 
@@ -64,41 +64,41 @@ export default function AttendancePage() {
         </header>
 
         <div className="admin-title">
-          <p className="section-kicker">HR · ATTENDANCE</p>
-          <h1>Who&apos;s in today</h1>
+          <p className="section-kicker">HR · CHẤM CÔNG</p>
+          <h1>Hôm nay ai có mặt</h1>
         </div>
 
         <div className="admin-stats attendance-stats">
-          <div className="admin-stat"><strong>{board.counts.present}<small>/{total}</small></strong><span>In today{board.counts.remote > 0 ? ` · ${board.counts.remote} remote` : ""}</span></div>
-          <div className="admin-stat"><strong>{board.counts.late}</strong><span>Arrived late</span></div>
-          <div className="admin-stat"><strong>{board.counts.notIn}</strong><span>{board.scheduled ? "Not in yet, shift started" : "Weekend: no shift"}</span></div>
-          <div className="admin-stat"><strong>{board.counts.onLeave}</strong><span>On leave</span></div>
+          <div className="admin-stat"><strong>{board.counts.present}<small>/{total}</small></strong><span>Có mặt hôm nay{board.counts.remote > 0 ? ` · ${board.counts.remote} từ xa` : ""}</span></div>
+          <div className="admin-stat"><strong>{board.counts.late}</strong><span>Đến trễ</span></div>
+          <div className="admin-stat"><strong>{board.counts.notIn}</strong><span>{board.scheduled ? "Chưa vào dù ca đã bắt đầu" : "Cuối tuần: không có ca"}</span></div>
+          <div className="admin-stat"><strong>{board.counts.onLeave}</strong><span>Nghỉ phép</span></div>
         </div>
 
         <section className="admin-section" aria-labelledby="today-heading">
           <div className="admin-section-head">
-            <h2 id="today-heading">Today</h2>
-            <p>Updates every few seconds. Only HR sees this; employees only ever see their own records.</p>
+            <h2 id="today-heading">Hôm nay</h2>
+            <p>Tự cập nhật vài giây một lần. Chỉ HR thấy mục này; nhân viên chỉ thấy dữ liệu của chính mình.</p>
           </div>
           <ul className="admin-list">
             {board.rows.map((row) => (
               <li className="admin-row attendance-row" key={row.id}>
                 <div className="admin-who">
                   <strong>{row.name}</strong>
-                  <span>{row.id} · {row.department} · shift {row.shift.start}–{row.shift.end}</span>
+                  <span>{row.id} · {row.department} · ca {row.shift.start}–{row.shift.end}</span>
                 </div>
                 <div className="admin-detail">
                   <span>
-                    {row.clockIn ? `In ${row.clockIn}` : "No clock-in"}
-                    {row.clockOut ? ` · Out ${row.clockOut}` : ""}
-                    {row.remote ? " · Remote" : ""}
+                    {row.clockIn ? `Vào ${row.clockIn}` : "Chưa chấm vào"}
+                    {row.clockOut ? ` · Ra ${row.clockOut}` : ""}
+                    {row.remote ? " · Từ xa" : ""}
                   </span>
-                  {row.corrected && <span title={row.notes.join(" / ")}>Corrected: {row.notes.join(" / ")}</span>}
+                  {row.corrected && <span title={row.notes.join(" / ")}>Đã sửa: {row.notes.join(" / ")}</span>}
                 </div>
                 <div className="attendance-actions">
                   {statusChip(row)}
                   {row.status !== "on_leave" && row.status !== "no_shift" && (
-                    <button className="text-button" onClick={() => startFix(row)} aria-label={`Correct ${row.name}'s record`}>Fix</button>
+                    <button className="text-button" onClick={() => startFix(row)} aria-label={`Sửa công của ${row.name}`}>Sửa</button>
                   )}
                 </div>
               </li>
@@ -119,29 +119,29 @@ export default function AttendancePage() {
 
         <section className="admin-section" aria-labelledby="month-heading">
           <div className="admin-section-head">
-            <h2 id="month-heading">{report ? formatMonth(report.month) : "This month"}</h2>
+            <h2 id="month-heading">{report ? formatMonth(report.month) : "Tháng này"}</h2>
             <div className="month-controls">
-              <button className="text-button" disabled={!report} onClick={() => report && setMonth(report.previous)} aria-label="Previous month">← Previous</button>
-              <button className="text-button" disabled={!report?.next} onClick={() => report?.next && setMonth(report.next)} aria-label="Next month">Next →</button>
-              {report && <a className="desk-export" href={`/api/admin/attendance/export?month=${report.month}`}>Export to Excel (CSV)</a>}
+              <button className="text-button" disabled={!report} onClick={() => report && setMonth(report.previous)} aria-label="Tháng trước">← Tháng trước</button>
+              <button className="text-button" disabled={!report?.next} onClick={() => report?.next && setMonth(report.next)} aria-label="Tháng sau">Tháng sau →</button>
+              {report && <a className="desk-export" href={`/api/admin/attendance/export?month=${report.month}`}>Xuất Excel (CSV)</a>}
             </div>
           </div>
-          <div className="admin-table month-table" role="table" aria-label="Attendance this month by person">
+          <div className="admin-table month-table" role="table" aria-label="Chấm công trong tháng theo từng người">
             <div className="admin-table-head" role="row">
-              <span role="columnheader">Person</span>
-              <span role="columnheader">Attended</span>
-              <span role="columnheader">Late</span>
-              <span role="columnheader">Absent</span>
-              <span role="columnheader">Leave</span>
-              <span role="columnheader">Left early</span>
-              <span role="columnheader">No clock-out</span>
-              <span role="columnheader">Perfect Days</span>
+              <span role="columnheader">Họ tên</span>
+              <span role="columnheader">Có mặt</span>
+              <span role="columnheader">Trễ</span>
+              <span role="columnheader">Vắng</span>
+              <span role="columnheader">Nghỉ phép</span>
+              <span role="columnheader">Về sớm</span>
+              <span role="columnheader">Quên chấm ra</span>
+              <span role="columnheader">Perfect Day</span>
             </div>
             {report?.rows.map((row) => (
               <div className="admin-table-row" role="row" key={row.id}>
-                <span role="cell"><strong>{row.name}</strong><small>{row.department}{row.remoteDays > 0 ? ` · ${row.remoteDays} remote` : ""}</small></span>
+                <span role="cell"><strong>{row.name}</strong><small>{row.department}{row.remoteDays > 0 ? ` · ${row.remoteDays} ngày từ xa` : ""}</small></span>
                 <span role="cell">{row.attended} / {row.scheduled}</span>
-                <span role="cell" className={row.lateDays > 0 ? "warn" : undefined}>{row.lateDays > 0 ? `${row.lateDays} ${row.lateDays === 1 ? "day" : "days"} · ${row.lateMinutes} min` : "—"}</span>
+                <span role="cell" className={row.lateDays > 0 ? "warn" : undefined}>{row.lateDays > 0 ? `${row.lateDays} ngày · ${row.lateMinutes} phút` : "—"}</span>
                 <span role="cell" className={row.absent > 0 ? "bad" : undefined}>{row.absent || "—"}</span>
                 <span role="cell">{row.leave || "—"}</span>
                 <span role="cell">{row.leftEarly || "—"}</span>
@@ -151,7 +151,7 @@ export default function AttendancePage() {
             ))}
           </div>
           <p className="admin-note month-note">
-            &ldquo;Attended&rdquo; counts working days so far this month, plus any weekend work. Today never counts as absent.
+            &ldquo;Có mặt&rdquo; tính các ngày làm việc đến nay trong tháng, cộng cả những ngày làm cuối tuần. Hôm nay không bao giờ bị tính là vắng.
           </p>
         </section>
       </section>
@@ -181,45 +181,45 @@ function CorrectionForm(props: {
       return;
     }
     const person = props.people.find((row) => row.id === input.employeeId)?.name ?? input.employeeId;
-    setMessage({ kind: "ok", text: `Saved ${person}'s ${input.kind === "clock_in" ? "clock-in" : "clock-out"} at ${input.time}.${result.creditAdded ? " That day now counts as a Perfect Day, so 2 credits were added." : ""}` });
+    setMessage({ kind: "ok", text: `Đã lưu giờ ${input.kind === "clock_in" ? "vào" : "ra"} của ${person}: ${input.time}.${result.creditAdded ? " Ngày đó giờ được tính là Perfect Day nên đã cộng 2 credit." : ""}` });
     set({ reason: "" });
   }
 
   return (
     <section className="admin-section" aria-labelledby="fix-heading">
       <div className="admin-section-head">
-        <h2 id="fix-heading">Correct a record</h2>
-        <p>For a forgotten clock-in or clock-out. The reason is saved and the record is marked as corrected.</p>
+        <h2 id="fix-heading">Sửa bản ghi công</h2>
+        <p>Dành cho trường hợp quên chấm vào hoặc chấm ra. Lý do được lưu lại và bản ghi được đánh dấu &ldquo;đã sửa&rdquo;.</p>
       </div>
       <form className="desk-card correction-form" onSubmit={submit}>
         <label>
-          <span>Person</span>
+          <span>Nhân viên</span>
           <select value={input.employeeId} onChange={(event) => set({ employeeId: event.target.value })}>
             {props.people.map((row) => <option key={row.id} value={row.id}>{row.name}</option>)}
           </select>
         </label>
         <label>
-          <span>Date</span>
+          <span>Ngày</span>
           <input type="date" value={input.date} max={props.today} onChange={(event) => set({ date: event.target.value })} required />
         </label>
         <label>
-          <span>Which</span>
+          <span>Loại</span>
           <select value={input.kind} onChange={(event) => set({ kind: event.target.value as CorrectionInput["kind"] })}>
-            <option value="clock_in">Clock in</option>
-            <option value="clock_out">Clock out</option>
+            <option value="clock_in">Chấm vào</option>
+            <option value="clock_out">Chấm ra</option>
           </select>
         </label>
         <label>
-          <span>Time</span>
+          <span>Giờ</span>
           <input type="time" value={input.time} onChange={(event) => set({ time: event.target.value })} required />
         </label>
         <label className="wide">
-          <span>Reason</span>
-          <input value={input.reason} onChange={(event) => set({ reason: event.target.value })} placeholder="e.g. Forgot to clock out, confirmed by team lead" maxLength={200} required />
+          <span>Lý do</span>
+          <input value={input.reason} onChange={(event) => set({ reason: event.target.value })} placeholder="Ví dụ: Quên chấm ra, trưởng nhóm đã xác nhận" maxLength={200} required />
         </label>
         <div className="desk-buttons">
-          <button type="button" className="desk-secondary" onClick={props.onCancel}>Close</button>
-          <button type="submit" className="desk-primary" disabled={busy}>{busy ? "Saving…" : "Save correction"}</button>
+          <button type="button" className="desk-secondary" onClick={props.onCancel}>Đóng</button>
+          <button type="submit" className="desk-primary" disabled={busy}>{busy ? "Đang lưu…" : "Lưu chỉnh sửa"}</button>
         </div>
         {message && <p className={message.kind === "ok" ? "desk-ok" : "desk-error"} role={message.kind === "error" ? "alert" : "status"}>{message.text}</p>}
       </form>

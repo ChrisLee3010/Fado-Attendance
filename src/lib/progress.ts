@@ -16,7 +16,7 @@ export type DayInfo = {
 export const MILESTONE_TARGETS = [5, 8, 12, 16, 20];
 
 export const milestoneCredits = (target: number) => target;
-export const milestoneTitle = (target: number) => `${target} Perfect Days milestone`;
+export const milestoneTitle = (target: number) => `Mốc ${target} Perfect Day`;
 
 export function milestonesReached(perfectDays: number) {
   return MILESTONE_TARGETS.filter((target) => target <= perfectDays);

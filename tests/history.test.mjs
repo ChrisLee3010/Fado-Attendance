@@ -87,9 +87,9 @@ test("the badge counts active groups of extra filters, not individual picks", ()
 });
 
 test("dates read naturally, including across a month boundary", () => {
-  assert.equal(formatDay("2026-11-06"), "6 November 2026");
-  assert.equal(formatWhen({ date: "2026-11-11", time: "18:05" }, TODAY), "Today · 18:05");
-  assert.equal(formatWhen({ date: "2026-11-10", time: "12:30" }, TODAY), "Yesterday · 12:30");
-  assert.equal(formatWhen({ date: "2026-11-06", time: "10:15" }, TODAY), "6 Nov · 10:15");
-  assert.equal(formatWhen({ date: "2026-11-30", time: "09:00" }, "2026-12-01"), "Yesterday · 09:00");
+  assert.equal(formatDay("2026-11-06"), "6 tháng 11, 2026");
+  assert.equal(formatWhen({ date: "2026-11-11", time: "18:05" }, TODAY), "Hôm nay · 18:05");
+  assert.equal(formatWhen({ date: "2026-11-10", time: "12:30" }, TODAY), "Hôm qua · 12:30");
+  assert.equal(formatWhen({ date: "2026-11-06", time: "10:15" }, TODAY), "6/11 · 10:15");
+  assert.equal(formatWhen({ date: "2026-11-30", time: "09:00" }, "2026-12-01"), "Hôm qua · 09:00");
 });

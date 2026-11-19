@@ -230,7 +230,7 @@ export function clockOut(employeeId: string, punch: Punch): ClockOutResult {
     log(true, where.verdict === "office" ? "ok_office" : "ok_remote");
 
     if (result.qualifies) {
-      db.prepare("INSERT INTO credit_transactions (employee_id, amount, type, title, occurred_on, occurred_time, source_ref, actor) VALUES (?, ?, 'perfect_day', 'Perfect Day bonus', ?, ?, ?, 'system')")
+      db.prepare("INSERT INTO credit_transactions (employee_id, amount, type, title, occurred_on, occurred_time, source_ref, actor) VALUES (?, ?, 'perfect_day', 'Thưởng Perfect Day', ?, ?, ?, 'system')")
         .run(employeeId, PERFECT_DAY_CREDITS, todayDate, time, `perfect-day:${employeeId}:${todayDate}`);
       awardMilestones(db, employeeId, shiftOf(db, employeeId), todayDate, time);
     }
@@ -266,7 +266,7 @@ export function redeem(rewardId: string, employeeId: string): RedeemResult {
     db.prepare("INSERT INTO redemptions (employee_id, reward_id, code, cost, status, issued_at) VALUES (?, ?, ?, ?, 'issued', ?)")
       .run(employeeId, rewardId, code, cost, `${date} ${time}`);
     db.prepare("INSERT INTO credit_transactions (employee_id, amount, type, title, occurred_on, occurred_time, source_ref, actor) VALUES (?, ?, 'redemption', ?, ?, ?, ?, ?)")
-      .run(employeeId, -cost, `${String(reward.name)} voucher`, date, time, `redeem:${code}`, employeeId);
+      .run(employeeId, -cost, `Đổi quà: ${String(reward.name)}`, date, time, `redeem:${code}`, employeeId);
     return { ok: true, code } as const;
   });
 }

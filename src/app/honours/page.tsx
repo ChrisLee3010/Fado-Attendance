@@ -51,16 +51,16 @@ export default function HonoursPage() {
 
       <section className="content">
         <header className="topbar">
-          <p><span className="eyebrow-dot" /> Monthly honour wall</p>
+          <p><span className="eyebrow-dot" /> Bảng vinh danh hằng tháng</p>
           <SignOutButton className="text-button" />
         </header>
 
         <div className="hw-intro">
           <p className="section-kicker">VINH DANH CHUYÊN CẦN</p>
-          <h1>Thank you for showing up.</h1>
+          <h1>Cảm ơn vì đã luôn có mặt.</h1>
           <p className="hw-note">
-            Everyone who reached a level last month, listed together in alphabetical order.
-            No rankings and no numbers: it&apos;s a thank-you, not a contest.
+            Tất cả những ai đạt một cấp độ trong tháng trước, được ghi tên cùng nhau theo thứ tự bảng chữ cái.
+            Không xếp hạng, không con số: đây là lời cảm ơn, không phải một cuộc thi.
           </p>
         </div>
 
@@ -69,14 +69,14 @@ export default function HonoursPage() {
             <div className="hw-month">
               <h2>{formatMonth(wall.month)}</h2>
               <div>
-                <button className="text-button" disabled={!wall.previous} onClick={() => wall.previous && setMonth(wall.previous)}>← Earlier</button>
-                <button className="text-button" disabled={!wall.next} onClick={() => wall.next && setMonth(wall.next)}>Later →</button>
+                <button className="text-button" disabled={!wall.previous} onClick={() => wall.previous && setMonth(wall.previous)}>← Trước</button>
+                <button className="text-button" disabled={!wall.next} onClick={() => wall.next && setMonth(wall.next)}>Sau →</button>
               </div>
             </div>
 
             {wall.yourTier && (
               <p className="hw-you">
-                {HONOUR_TITLES[wall.yourTier].icon} You&apos;re on the wall for {formatMonth(wall.month)}: <strong>{HONOUR_TITLES[wall.yourTier].title}</strong>. Thank you.
+                {HONOUR_TITLES[wall.yourTier].icon} Bạn có tên trên bảng vinh danh {formatMonth(wall.month)}: <strong>{HONOUR_TITLES[wall.yourTier].title}</strong>. Cảm ơn bạn.
               </p>
             )}
 
@@ -87,14 +87,14 @@ export default function HonoursPage() {
                   <p>{tier.description}</p>
                 </div>
                 {tier.people.length === 0 ? (
-                  <p className="hw-empty">Nobody this month. Maybe you, next month.</p>
+                  <p className="hw-empty">Tháng này chưa có ai. Biết đâu là bạn vào tháng sau.</p>
                 ) : (
                   <ul className="hw-people">
                     {tier.people.map((person) => (
                       <li className={`hw-person ${person.you ? "you" : ""}`} key={person.name}>
                         <span className="avatar" aria-hidden="true">{initials(person.name)}</span>
                         <div>
-                          <strong>{person.name}{person.you ? " (you)" : ""}</strong>
+                          <strong>{person.name}{person.you ? " (bạn)" : ""}</strong>
                           <span>{person.department}</span>
                         </div>
                       </li>
@@ -104,13 +104,13 @@ export default function HonoursPage() {
               </section>
             ))}
 
-            {!anyone && <p className="hw-empty">No one reached a level this month.</p>}
+            {!anyone && <p className="hw-empty">Tháng này chưa có ai đạt cấp độ nào.</p>}
           </>
         )}
 
         <p className="hw-fine">
-          Worked out automatically from attendance once a month is over. Each person gets their highest level only.
-          Approved leave never counts against anyone. Your progress for the current month is on your Progress page, visible only to you.
+          Được tính tự động từ dữ liệu chấm công khi tháng kết thúc. Mỗi người chỉ hiện ở cấp cao nhất đạt được.
+          Nghỉ phép được duyệt không bao giờ bị tính là vắng. Tiến độ tháng hiện tại nằm ở trang Tiến độ, chỉ mình bạn thấy.
         </p>
       </section>
     </main>

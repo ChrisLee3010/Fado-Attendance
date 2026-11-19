@@ -67,9 +67,4 @@ export function useCorrections() {
   return { version, submit };
 }
 
-const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-
-export function formatMonth(month: string) {
-  const [year, number] = month.split("-").map(Number);
-  return `${MONTH_NAMES[number - 1]} ${year}`;
-}
+export { formatMonth } from "./history";

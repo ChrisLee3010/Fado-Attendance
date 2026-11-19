@@ -20,81 +20,81 @@ export default function RewardsPage() {
 
       <section className="content rewards-page">
         <header className="topbar">
-          <p><span className="eyebrow-dot" /> Your reward shelf</p>
+          <p><span className="eyebrow-dot" /> Kệ quà của bạn</p>
           <div className="topbar-actions">
-            <Link className="wallet-balance" href="/#rewards"><WalletIcon /> {balance} credits</Link>
+            <Link className="wallet-balance" href="/#rewards"><WalletIcon /> {balance} credit</Link>
             <SignOutButton className="text-button" />
           </div>
         </header>
 
         <div className="reward-intro">
           <div>
-            <p className="section-kicker">REWARDS</p>
-            <h1>Spend your<br />small wins.</h1>
+            <p className="section-kicker">QUÀ TẶNG</p>
+            <h1>Đổi những<br />chiến thắng nhỏ.</h1>
           </div>
-          <p>Real moments, not abstract badges.<br />Choose what feels useful today.</p>
+          <p>Những khoảnh khắc thật, không phải huy hiệu trừu tượng.<br />Chọn thứ hữu ích với bạn hôm nay.</p>
         </div>
 
         {state.voucher ? (
           <section className={`voucher-card ${state.voucherUsedAt ? "used" : ""}`} aria-live="polite">
             <div className="voucher-stamp"><CheckIcon /></div>
             <div className="voucher-copy">
-              <p className="section-kicker">{state.voucherUsedAt ? "USED" : "READY TO USE"}</p>
-              <h2>{state.voucherUsedAt ? "Enjoy your coffee." : "Your coffee is on us."}</h2>
+              <p className="section-kicker">{state.voucherUsedAt ? "ĐÃ DÙNG" : "SẴN SÀNG SỬ DỤNG"}</p>
+              <h2>{state.voucherUsedAt ? "Chúc bạn ngon miệng." : "Ly cà phê này công ty mời."}</h2>
               <p>
                 {state.voucherUsedAt
-                  ? "This voucher was used at the café and can't be used again."
-                  : <>Show this code at the <Link href="/cashier">demo cashier</Link>. One use only.</>}
+                  ? "Voucher này đã được dùng tại quán và không thể dùng lại."
+                  : <>Đưa mã này cho <Link href="/cashier">quầy đổi quà (demo)</Link>. Chỉ dùng được một lần.</>}
               </p>
             </div>
-            <div className="voucher-code"><span>VOUCHER CODE</span><strong>{state.voucher}</strong></div>
-            <div className="voucher-foot"><span>{state.voucherUsedAt ? `Used ${state.voucherUsedAt.toLowerCase()}` : `Issued ${(state.voucherIssuedAt ?? "").toLowerCase()}`}</span><span>{COFFEE_COST} credits redeemed</span></div>
+            <div className="voucher-code"><span>MÃ VOUCHER</span><strong>{state.voucher}</strong></div>
+            <div className="voucher-foot"><span>{state.voucherUsedAt ? `Đã dùng ${state.voucherUsedAt.toLowerCase()}` : `Phát hành ${(state.voucherIssuedAt ?? "").toLowerCase()}`}</span><span>Đã đổi {COFFEE_COST} credit</span></div>
           </section>
         ) : (
           <section className="featured-reward">
             <div className="featured-art"><span>☕</span><i>★</i></div>
             <div className="featured-copy">
-              <p className="section-kicker">WITHIN REACH</p>
-              <h2>Coffee break</h2>
-              <p>Any regular coffee from FADO Café. Take fifteen minutes for yourself.</p>
-              <div className="reward-meta"><span>{COFFEE_COST} credits</span><span>·</span><span>12 available today</span></div>
+              <p className="section-kicker">TRONG TẦM TAY</p>
+              <h2>Giờ nghỉ cà phê</h2>
+              <p>Một ly cà phê bất kỳ tại FADO Café. Dành mười lăm phút cho chính mình.</p>
+              <div className="reward-meta"><span>{COFFEE_COST} credit</span><span>·</span><span>Còn 12 phần hôm nay</span></div>
               {!canRedeem && (
                 <p className="reward-hint">
-                  Earn {togo(COFFEE_COST, balance)} more. <Link href="/">Clock out on Today</Link> to add your Perfect Day credit.
+                  Cần thêm {togo(COFFEE_COST, balance)} credit. <Link href="/">Chấm ra ở trang Hôm nay</Link> để nhận credit Perfect Day.
                 </p>
               )}
             </div>
             <button className="redeem-button" onClick={redeemCoffee} disabled={!canRedeem}>
-              {canRedeem ? <>Redeem {COFFEE_COST} credits <span>↗</span></> : `${togo(COFFEE_COST, balance)} credits to go`}
+              {canRedeem ? <>Đổi {COFFEE_COST} credit <span>↗</span></> : `Còn ${togo(COFFEE_COST, balance)} credit`}
             </button>
           </section>
         )}
 
         <section className="other-rewards">
           <div className="ledger-heading">
-            <div><p className="section-kicker">KEEP GOING</p><h2>Worth working toward</h2></div>
-            <span className="catalogue-note">Demo catalogue</span>
+            <div><p className="section-kicker">TIẾP TỤC NÀO</p><h2>Đáng để cố gắng</h2></div>
+            <span className="catalogue-note">Danh mục demo</span>
           </div>
           <div className="reward-grid">
             <article className="reward-card">
               <div className="reward-emoji yellow">🍱</div>
-              <div><h3>Lunch for two</h3><p>75 credits · 4 available</p></div>
-              <span className="locked">{togo(75, balance)} to go</span>
+              <div><h3>Bữa trưa cho hai người</h3><p>75 credit · còn 4 phần</p></div>
+              <span className="locked">Còn {togo(75, balance)}</span>
             </article>
             <article className="reward-card">
               <div className="reward-emoji pink">🎁</div>
-              <div><h3>FADO goodie bag</h3><p>120 credits · 8 available</p></div>
-              <span className="locked">{togo(120, balance)} to go</span>
+              <div><h3>Túi quà FADO</h3><p>120 credit · còn 8 phần</p></div>
+              <span className="locked">Còn {togo(120, balance)}</span>
             </article>
             <article className="reward-card leave-card">
               <div className="reward-emoji green">🌿</div>
-              <div><h3>Personal day request</h3><p>200 credits · Admin review</p></div>
-              <span className="locked">{togo(200, balance)} to go</span>
+              <div><h3>Xin một ngày nghỉ</h3><p>200 credit · HR duyệt</p></div>
+              <span className="locked">Còn {togo(200, balance)}</span>
             </article>
           </div>
         </section>
 
-        <p className="reward-disclaimer">All rewards, stock, credits, and approvals shown here are fictional prototype data.</p>
+        <p className="reward-disclaimer">Mọi phần thưởng, số lượng, credit và phê duyệt hiển thị ở đây đều là dữ liệu giả lập.</p>
       </section>
     </main>
   );

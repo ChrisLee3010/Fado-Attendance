@@ -10,7 +10,11 @@ the fixed domain move to "rollout ideas" for the product document, together with
 
 **Done 2026-11-18/19:** admin attendance view (today, lateness, month totals, corrections, Excel export) and the
 monthly honour wall (levels, not rankings: Perfect month / On time, every day / Never missed a day; finished months
-only; private "on track for" card on each person's Progress page). Next: product document.
+only; private "on track for" card on each person's Progress page).
+
+**Done 2026-11-19:** product document draft (`docs/tai-lieu-san-pham.md`, Vietnamese) and the whole interface in
+Vietnamese ("credit" and "Perfect Day" kept as product names; Excel export headings in Vietnamese too).
+Still open: load test at FADO's real headcount, the six `[CẦN BỔ SUNG]` spots in the document.
 
 ## Running it
 

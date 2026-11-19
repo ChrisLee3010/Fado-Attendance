@@ -256,7 +256,7 @@ function seed(db: DatabaseSync) {
     ];
     plan.forEach(({ date, day }) => {
       if (day.off) {
-        dayOff.run(employeeId, date, day.off, "Approved leave");
+        dayOff.run(employeeId, date, day.off, "Nghỉ phép đã duyệt");
         return;
       }
       if (!day.in) return;
@@ -269,9 +269,9 @@ function seed(db: DatabaseSync) {
       const perfectDays = (perfectDaysByMonth.get(month) ?? 0) + 1;
       perfectDaysByMonth.set(month, perfectDays);
       if (day.correctionTime) {
-        credit.run(employeeId, PERFECT_DAY_CREDITS, "adjustment", "Attendance correction", nextWorkday(date), day.correctionTime, `correction:${employeeId}:${date}`);
+        credit.run(employeeId, PERFECT_DAY_CREDITS, "adjustment", "Điều chỉnh công", nextWorkday(date), day.correctionTime, `correction:${employeeId}:${date}`);
       } else {
-        credit.run(employeeId, PERFECT_DAY_CREDITS, "perfect_day", "Perfect Day bonus", date, day.out, `perfect-day:${employeeId}:${date}`);
+        credit.run(employeeId, PERFECT_DAY_CREDITS, "perfect_day", "Thưởng Perfect Day", date, day.out, `perfect-day:${employeeId}:${date}`);
       }
       if (MILESTONE_TARGETS.includes(perfectDays)) {
         credit.run(employeeId, milestoneCredits(perfectDays), "milestone", milestoneTitle(perfectDays), date, day.out, `milestone:${employeeId}:${month}:pd-${perfectDays}`);
@@ -288,32 +288,33 @@ function seed(db: DatabaseSync) {
     });
   }
 
-  credit.run("EMP001", 2, "perfect_day", "Perfect Day bonus", daysAgo(21), "18:04", "seed:EMP001:perfect-day-1");
-  credit.run("EMP001", 2, "perfect_day", "Perfect Day bonus", daysAgo(20), "18:02", "seed:EMP001:perfect-day-2");
-  credit.run("EMP001", 10, "milestone", "Weekly milestone", daysAgo(14), "17:00", "seed:EMP001:weekly");
-  credit.run("EMP001", 7, "milestone", "Perfect Day streak", daysAgo(12), "17:00", "seed:EMP001:streak");
-  credit.run("EMP002", 60, "milestone", "20 attendance days milestone", daysAgo(28), "17:00", "seed:EMP002:milestone-20");
-  credit.run("EMP002", 40, "milestone", "Perfect Day streak", daysAgo(18), "17:00", "seed:EMP002:streak");
-  credit.run("EMP002", 17, "perfect_day", "Weekly bonus", daysAgo(12), "17:00", "seed:EMP002:weekly-bonus");
-  credit.run("EMP002", -75, "redemption", "Lunch for two voucher", daysAgo(1), "12:30", "redeem:WQ-3D71");
-  credit.run("EMP003", 12, "milestone", "Perfect Day streak", daysAgo(20), "17:00", "seed:EMP003:streak");
-  credit.run("EMP003", 7, "perfect_day", "Weekly bonus", daysAgo(12), "17:00", "seed:EMP003:weekly-bonus");
-  credit.run("EMP006", 150, "milestone", "Quarterly attendance milestone", daysAgo(7), "17:00", "seed:EMP006:quarterly");
-  credit.run("EMP006", -120, "redemption", "FADO goodie bag voucher", daysAgo(1), "13:10", "redeem:WQ-91AA");
+  credit.run("EMP001", 2, "perfect_day", "Thưởng Perfect Day", daysAgo(21), "18:04", "seed:EMP001:perfect-day-1");
+  credit.run("EMP001", 2, "perfect_day", "Thưởng Perfect Day", daysAgo(20), "18:02", "seed:EMP001:perfect-day-2");
+  credit.run("EMP001", 10, "milestone", "Mốc tuần", daysAgo(14), "17:00", "seed:EMP001:weekly");
+  credit.run("EMP001", 7, "milestone", "Chuỗi Perfect Day", daysAgo(12), "17:00", "seed:EMP001:streak");
+  credit.run("EMP002", 60, "milestone", "Mốc 20 ngày đi làm", daysAgo(28), "17:00", "seed:EMP002:milestone-20");
+  credit.run("EMP002", 40, "milestone", "Chuỗi Perfect Day", daysAgo(18), "17:00", "seed:EMP002:streak");
+  credit.run("EMP002", 17, "perfect_day", "Thưởng tuần", daysAgo(12), "17:00", "seed:EMP002:weekly-bonus");
+  credit.run("EMP002", -75, "redemption", "Đổi quà: Bữa trưa cho hai người", daysAgo(1), "12:30", "redeem:WQ-3D71");
+  credit.run("EMP003", 12, "milestone", "Chuỗi Perfect Day", daysAgo(20), "17:00", "seed:EMP003:streak");
+  credit.run("EMP003", 7, "perfect_day", "Thưởng tuần", daysAgo(12), "17:00", "seed:EMP003:weekly-bonus");
+  credit.run("EMP006", 150, "milestone", "Mốc đi làm theo quý", daysAgo(7), "17:00", "seed:EMP006:quarterly");
+  credit.run("EMP006", -120, "redemption", "Đổi quà: Túi quà FADO", daysAgo(1), "13:10", "redeem:WQ-91AA");
 
   const reward = db.prepare("INSERT INTO rewards (id, name, kind, cost, stock) VALUES (?, ?, ?, ?, ?)");
-  reward.run("coffee", "Coffee break", "Voucher", 40, 12);
-  reward.run("lunch", "Lunch for two", "Voucher", 75, 4);
-  reward.run("goodie-bag", "FADO goodie bag", "Gift", 120, 8);
-  reward.run("personal-day", "Personal day request", "Needs approval", 200, null);
+  // `kind` is a code value ("Needs approval" is checked in redeem()), shown to people as a Vietnamese label.
+  reward.run("coffee", "Giờ nghỉ cà phê", "Voucher", 40, 12);
+  reward.run("lunch", "Bữa trưa cho hai người", "Voucher", 75, 4);
+  reward.run("goodie-bag", "Túi quà FADO", "Gift", 120, 8);
+  reward.run("personal-day", "Xin một ngày nghỉ", "Needs approval", 200, null);
 
   const redemption = db.prepare("INSERT INTO redemptions (employee_id, reward_id, code, cost, status, issued_at, used_at, used_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
   redemption.run("EMP002", "lunch", "WQ-3D71", 75, "used", `${daysAgo(1)} 12:30`, `${daysAgo(1)} 12:45`, "cashier");
   redemption.run("EMP006", "goodie-bag", "WQ-91AA", 120, "issued", `${daysAgo(1)} 13:10`, null, null);
 
   const leave = db.prepare("INSERT INTO leave_requests (id, employee_id, note, cost, asked_at) VALUES (?, ?, ?, 200, ?)");
-  leave.run("lr-1", "EMP002", `Requesting ${formatShort(nextWorkday(todayDate, 7))}`, `${daysAgo(1)} 16:40`);
-  leave.run("lr-2", "EMP006", `Requesting ${formatShort(nextWorkday(todayDate, 12))}`, `${daysAgo(2)} 10:15`);
+  leave.run("lr-1", "EMP002", `Xin nghỉ ngày ${formatShort(nextWorkday(todayDate, 7))}`, `${daysAgo(1)} 16:40`);
+  leave.run("lr-2", "EMP006", `Xin nghỉ ngày ${formatShort(nextWorkday(todayDate, 12))}`, `${daysAgo(2)} 10:15`);
 }
 
 function seedUsers(db: DatabaseSync) {
@@ -330,8 +331,8 @@ function seedUsers(db: DatabaseSync) {
 function seedOfficeNetworks(db: DatabaseSync) {
   const insert = db.prepare("INSERT INTO office_networks (cidr, label, added_at, added_by) VALUES (?, ?, ?, 'system')");
   const at = `${today()} 00:00`;
-  insert.run("127.0.0.1/32", "This computer (local demo)", at);
-  insert.run("::1/128", "This computer (local demo, IPv6)", at);
+  insert.run("127.0.0.1/32", "Máy tính này (demo cục bộ)", at);
+  insert.run("::1/128", "Máy tính này (demo cục bộ, IPv6)", at);
 }
 
 function clearBusinessData(db: DatabaseSync) {

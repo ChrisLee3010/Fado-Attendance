@@ -148,7 +148,7 @@ export function correctPunch(args: { employeeId: string; date: string; kind: "cl
       const shift = shiftOf(db, args.employeeId);
       const credited = db.prepare("SELECT 1 AS found FROM credit_transactions WHERE source_ref IN (?, ?)").get(`perfect-day:${args.employeeId}:${args.date}`, `correction:${args.employeeId}:${args.date}`);
       if (!credited && evaluatePerfectDay(shift, finalIn, finalOut).qualifies) {
-        db.prepare("INSERT INTO credit_transactions (employee_id, amount, type, title, occurred_on, occurred_time, source_ref, actor) VALUES (?, ?, 'adjustment', 'Attendance correction', ?, ?, ?, ?)")
+        db.prepare("INSERT INTO credit_transactions (employee_id, amount, type, title, occurred_on, occurred_time, source_ref, actor) VALUES (?, ?, 'adjustment', 'Điều chỉnh công', ?, ?, ?, ?)")
           .run(args.employeeId, PERFECT_DAY_CREDITS, todayDate, nowTime, `perfect-day:${args.employeeId}:${args.date}`, args.actorId);
         creditAdded = true;
         if (args.date.slice(0, 7) === todayDate.slice(0, 7)) awardMilestones(db, args.employeeId, shift, todayDate, nowTime);
@@ -160,7 +160,7 @@ export function correctPunch(args: { employeeId: string; date: string; kind: "cl
 
 // ---- Spreadsheet export ----
 
-const SOURCE_LABELS: Record<PunchSource, string> = { office: "Office", remote: "Remote", seed: "Earlier record", admin_correction: "Corrected by admin" };
+const SOURCE_LABELS: Record<PunchSource, string> = { office: "Văn phòng", remote: "Từ xa", seed: "Dữ liệu cũ", admin_correction: "HR đã sửa" };
 
 function csvCell(value: string | number | null) {
   const text = value === null ? "" : String(value);
@@ -172,7 +172,7 @@ function csvCell(value: string | number | null) {
 export function monthCsv(month: string) {
   const db = getDb();
   const todayDate = now().date;
-  const header = ["Date", "Employee ID", "Name", "Department", "Status", "Clock in", "Clock out", "Minutes late", "Minutes left early", "Recorded as", "Correction note"];
+  const header = ["Ngày", "Mã nhân viên", "Họ tên", "Phòng ban", "Trạng thái", "Giờ vào", "Giờ ra", "Phút trễ", "Phút về sớm", "Ghi nhận qua", "Ghi chú sửa công"];
   const lines = [header.map(csvCell).join(",")];
 
   const details = new Map<string, Punch>();
@@ -187,12 +187,12 @@ export function monthCsv(month: string) {
       const clockIn = details.get(`${employee.id}:${day.date}:clock_in`);
       const clockOut = details.get(`${employee.id}:${day.date}:clock_out`);
       const status =
-        day.kind === "leave" ? "Leave"
-        : day.kind === "holiday" ? "Holiday"
-        : !day.clockIn ? (day.date === todayDate ? "Not in yet" : "Absent")
-        : day.kind === "weekend" ? "Weekend work"
-        : lateBy(shift, day.clockIn) > 0 ? "Late"
-        : "Present";
+        day.kind === "leave" ? "Nghỉ phép"
+        : day.kind === "holiday" ? "Nghỉ lễ"
+        : !day.clockIn ? (day.date === todayDate ? "Chưa vào" : "Vắng")
+        : day.kind === "weekend" ? "Làm cuối tuần"
+        : lateBy(shift, day.clockIn) > 0 ? "Trễ"
+        : "Đúng giờ";
       const sources = [...new Set([clockIn?.source, clockOut?.source].filter((source): source is PunchSource => !!source))];
       lines.push(
         [

@@ -37,13 +37,13 @@ export default function LoginPage() {
       }
       setError(
         response.status === 401
-          ? "That email or password isn't right. Check them and try again."
+          ? "Email hoặc mật khẩu chưa đúng. Hãy kiểm tra và thử lại."
           : response.status === 429
-            ? "Too many attempts. Wait a few minutes, then try again."
-            : "Something went wrong. Try again.",
+            ? "Bạn đã thử quá nhiều lần. Hãy đợi vài phút rồi thử lại."
+            : "Đã có lỗi xảy ra. Hãy thử lại.",
       );
     } catch {
-      setError("Can't reach the server. Check your connection and try again.");
+      setError("Không kết nối được máy chủ. Hãy kiểm tra mạng và thử lại.");
     }
     setBusy(false);
   }
@@ -63,8 +63,8 @@ export default function LoginPage() {
       </div>
 
       <section className="login-card">
-        <h1>Sign in</h1>
-        <p className="login-lead">Use your FADO account to see your workday.</p>
+        <h1>Đăng nhập</h1>
+        <p className="login-lead">Dùng tài khoản FADO để xem ngày làm việc của bạn.</p>
 
         <form className="login-form" onSubmit={submit}>
           <label htmlFor="email">Email</label>
@@ -76,7 +76,7 @@ export default function LoginPage() {
             onChange={(event) => setEmail(event.target.value)}
             required
           />
-          <label htmlFor="password">Password</label>
+          <label htmlFor="password">Mật khẩu</label>
           <input
             id="password"
             type="password"
@@ -87,12 +87,12 @@ export default function LoginPage() {
           />
           {error && <p className="login-error" role="alert">{error}</p>}
           <button ref={submitRef} className="login-submit" type="submit" disabled={busy}>
-            {busy ? "Signing in…" : "Sign in"}
+            {busy ? "Đang đăng nhập…" : "Đăng nhập"}
           </button>
         </form>
 
         <div className="login-demo">
-          <p>Prototype accounts. Pick one to fill the form.</p>
+          <p>Tài khoản demo. Chọn một tài khoản để điền sẵn vào biểu mẫu.</p>
           <ul>
             {DEMO_ACCOUNTS.map((account) => (
               <li key={account.id}>
@@ -106,7 +106,7 @@ export default function LoginPage() {
         </div>
       </section>
 
-      <p className="login-note">Fictional prototype data. Not connected to FADO&apos;s HR systems.</p>
+      <p className="login-note">Dữ liệu giả lập. Không kết nối với hệ thống nhân sự của FADO.</p>
     </main>
   );
 }

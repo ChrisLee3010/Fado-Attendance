@@ -3,6 +3,6 @@ export const LUNCH_COST = 75;
 
 export function nextRewardTarget(hasCoffeeVoucher: boolean) {
   return hasCoffeeVoucher
-    ? { name: "Lunch for two", icon: "🍱", cost: LUNCH_COST }
-    : { name: "Coffee voucher", icon: "☕", cost: COFFEE_COST };
+    ? { name: "Bữa trưa cho hai người", icon: "🍱", cost: LUNCH_COST }
+    : { name: "Voucher cà phê", icon: "☕", cost: COFFEE_COST };
 }

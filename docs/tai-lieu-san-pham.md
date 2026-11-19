@@ -12,9 +12,9 @@
 Workday Quest thay thế hoàn toàn máy chấm công vân tay bằng **một chạm trên điện thoại của chính nhân viên**.
 Ứng dụng chạy độc lập, không kết nối với máy chấm công hiện tại.
 
-- **Chấm công:** mở ứng dụng → bấm **Clock in** / **Clock out** (chấm vào / chấm ra). Giờ do máy chủ quyết định; vị trí được xác nhận bằng **mạng Wi-Fi văn phòng**.
+- **Chấm công:** mở ứng dụng → bấm **Chấm vào** / **Chấm ra**. Giờ do máy chủ quyết định; vị trí được xác nhận bằng **mạng Wi-Fi văn phòng**.
 
-*Giao diện bản thi đang bằng tiếng Anh; tài liệu này ghi tên nút và màn hình đúng như trên ứng dụng, kèm nghĩa tiếng Việt.*
+*Giao diện ứng dụng hoàn toàn bằng tiếng Việt; tài liệu này ghi tên nút và màn hình đúng như trên ứng dụng. "Credit" và "Perfect Day" được giữ nguyên làm tên riêng của sản phẩm.*
 - **Lý do muốn chấm công đều đặn:** mỗi ngày đúng giờ là một **Perfect Day** (+2 credit), tích đủ mốc nhận thêm thưởng, đổi credit lấy cà phê, bữa trưa, quà FADO hoặc một ngày nghỉ.
 - **Vinh danh hằng tháng không so sánh hơn thua:** ai đạt cấp độ nào thì được ghi tên ở cấp đó, xếp theo bảng chữ cái, **không xếp hạng, không con số**.
 - **Cho HR:** ai có mặt hôm nay, ai đi trễ bao nhiêu phút, tổng hợp theo tháng, sửa công có lý do, xuất Excel.
@@ -59,9 +59,9 @@ sinh trắc học) được thiết kế sẵn hướng đi nhưng để cho gia
 | Nhận diện khuôn mặt tự xây | Tốt | Tốt | Rủi ro cao trong 1 tuần, lưu dữ liệu sinh trắc học | Loại |
 
 **Cách hoạt động:**
-- Admin thêm mạng văn phòng bằng một nút **Add the network I'm on** (thêm mạng tôi đang dùng), hoặc nhập dải IP. Có thể thêm nhiều mạng: nhiều tầng, nhiều văn phòng.
+- Admin thêm mạng văn phòng bằng một nút **Thêm mạng tôi đang dùng**, hoặc nhập dải IP. Có thể thêm nhiều mạng: nhiều tầng, nhiều văn phòng.
 - Cả **chấm vào lẫn chấm ra** đều được kiểm tra. Nếu không, có thể về lúc 17:00 rồi ở nhà chấm ra lúc 18:05.
-- Ngoài mạng văn phòng: người được phép làm từ xa được ghi nhận **Remote** (từ xa); người khác bị từ chối kèm hướng dẫn
+- Ngoài mạng văn phòng: người được phép làm từ xa được ghi nhận **Từ xa**; người khác bị từ chối kèm hướng dẫn
   (nghĩa: "Hãy kết nối Wi-Fi văn phòng. Nếu đang dùng VPN, hãy tắt rồi thử lại").
 - **Mọi lần chấm, kể cả bị từ chối, đều được ghi nhật ký** (giờ, IP, thiết bị, lý do) để HR tra cứu khi có người báo "không chấm được".
 
@@ -97,7 +97,7 @@ Mọi phần thưởng đến từ thành tích của chính mình; không có b
 
 ### 4.2 Mốc trong tháng
 - Đạt **5, 8, 12, 16, 20 Perfect Day** trong tháng → thưởng thêm đúng bằng số đó (+5, +8, +12, +16, +20 credit).
-- Trang **Progress** (tiến độ) cho biết còn bao nhiêu ngày đến mốc tiếp theo.
+- Trang **Tiến độ** cho biết còn bao nhiêu ngày đến mốc tiếp theo.
 
 ### 4.3 Ví credit và đổi quà
 | Phần thưởng | Credit |
@@ -116,19 +116,19 @@ Mọi phần thưởng đến từ thành tích của chính mình; không có b
 Đề bài vừa yêu cầu **vinh danh người chuyên cần nhất**, vừa yêu cầu **không so sánh hơn thua**. Cách giải quyết:
 mỗi người đạt cấp độ dựa trên **hồ sơ của chính mình**, và tất cả những ai đạt cùng cấp được ghi tên **cùng nhau**.
 
-| Cấp độ (tên trên ứng dụng) | Điều kiện trong tháng |
+| Cấp độ | Điều kiện trong tháng |
 |---|---|
-| 🌟 **Perfect month** (tháng hoàn hảo) | Mọi ngày làm việc đều là Perfect Day |
-| ⏰ **On time, every day** (đúng giờ mỗi ngày) | Không vắng ngày nào, không trễ ngày nào |
-| ✅ **Never missed a day** (không vắng ngày nào) | Có mặt mọi ngày làm việc |
+| 🌟 **Tháng hoàn hảo** | Mọi ngày làm việc đều là Perfect Day |
+| ⏰ **Đúng giờ mỗi ngày** | Không vắng ngày nào, không trễ ngày nào |
+| ✅ **Không vắng ngày nào** | Có mặt mọi ngày làm việc |
 
-Các cấp độ nằm trên trang **Honours** (vinh danh).
+Các cấp độ nằm trên trang **Vinh danh**.
 
 - **Chỉ hiện tháng đã kết thúc**: không có bảng thi đua "trực tiếp" giữa tháng gây áp lực.
 - **Chỉ tên và phòng ban**, xếp theo **bảng chữ cái**; không số liệu, không thứ hạng. Mỗi người chỉ hiện ở cấp cao nhất đạt được.
 - **Nghỉ phép được duyệt không bị tính** là vắng.
 - **Tự động** tính từ dữ liệu chấm công, kể cả các lần HR sửa công.
-- **Riêng tư trong tháng:** trang Progress của mỗi người cho biết đang trên đà đạt cấp nào và còn bao nhiêu ngày làm việc.
+- **Riêng tư trong tháng:** trang Tiến độ của mỗi người cho biết đang trên đà đạt cấp nào và còn bao nhiêu ngày làm việc.
   Chỉ người đó thấy. Lỡ một ngày thì thông điệp là "tháng sau là một khởi đầu mới; mỗi Perfect Day vẫn được cộng credit".
 - Không cộng thêm credit cho vinh danh: lời cảm ơn công khai là phần thưởng, đúng tinh thần **tự nguyện**.
 
@@ -137,12 +137,12 @@ Các cấp độ nằm trên trang **Honours** (vinh danh).
 - Không có bảng xếp hạng, điểm số hay phần trăm so với người khác ở bất kỳ màn hình nào.
 - Số liệu chi tiết về đi trễ/vắng chỉ dành cho HR.
 
-## 5. Dành cho HR (trang Attendance, chấm công)
+## 5. Dành cho HR (trang Chấm công)
 - **Hôm nay:** có mặt bao nhiêu / tổng số, ai **trễ bao nhiêu phút**, ai **chưa đến** dù ca đã bắt đầu, ai **về sớm**, ai làm **từ xa**, ai **nghỉ phép**. Tự cập nhật vài giây một lần.
 - **Theo tháng, từng người:** số ngày có mặt, số lần trễ và tổng phút trễ, vắng, nghỉ phép, về sớm, quên chấm ra, số Perfect Day. Xem được các tháng trước.
 - **Sửa công:** cho trường hợp quên chấm; **bắt buộc ghi lý do**, bản ghi được đánh dấu "đã sửa" ở mọi nơi. Nếu ngày được sửa đủ điều kiện Perfect Day thì cộng credit đúng một lần.
 - **Xuất Excel (CSV):** mỗi người mỗi ngày một dòng, hiển thị đúng tiếng Việt, dùng cho tính lương.
-- **Mạng văn phòng & nhật ký chấm công** (trang Admin): thêm/xoá mạng, xem mọi lần chấm và lý do bị từ chối.
+- **Mạng văn phòng & nhật ký chấm công** (trang Quản trị): thêm/xoá mạng, xem mọi lần chấm và lý do bị từ chối.
 
 ## 6. Giới hạn đã biết (nói thẳng)
 - **Chấm hộ:** bản thi dùng tài khoản demo có mật khẩu; nếu ai đó đưa mật khẩu cho đồng nghiệp ở văn phòng thì vẫn chấm hộ được.
@@ -162,10 +162,10 @@ Các cấp độ nằm trên trang **Honours** (vinh danh).
 
 ## 8. Lộ trình nếu FADO triển khai
 1. **Đăng nhập FADO SSO**, tên miền `chamcong.fadoai.com` trên máy chủ công ty.
-2. **Giao diện tiếng Việt** (bản thi đang bằng tiếng Anh). [CẦN BỔ SUNG: quyết định ngôn ngữ cho bản thi]
-3. **Face ID khi chấm công** (passkey) để chống chấm hộ hoàn toàn.
-4. **Đồng bộ dữ liệu sang AssetFlow** (mục "Dữ Liệu Chấm Công") để giữ quy trình tính lương hiện tại.
-5. **Ca làm việc linh hoạt, ngày lễ, nhiều văn phòng**, nhắc chấm công qua Telegram.
+2. **Face ID khi chấm công** (passkey) để chống chấm hộ hoàn toàn.
+3. **Đồng bộ dữ liệu sang AssetFlow** (mục "Dữ Liệu Chấm Công") để giữ quy trình tính lương hiện tại.
+4. **Ca làm việc linh hoạt, ngày lễ, nhiều văn phòng**, nhắc chấm công qua Telegram.
+5. **Chuyển đổi ngôn ngữ** (tiếng Việt / tiếng Anh) nếu công ty có nhân sự nước ngoài.
 
 ## 9. Hướng dẫn xem nhanh (demo)
 1. Chạy `npm run dev` trong thư mục `workday-quest`, mở http://localhost:3000.
@@ -173,8 +173,8 @@ Các cấp độ nằm trên trang **Honours** (vinh danh).
    - **Nhân viên:** `alex@fado.demo`, `sarah@fado.demo` (được phép làm từ xa)
    - **HR/Admin (cũng là nhân viên):** `admin@fado.demo`
    - **Quầy đổi quà:** `cashier@fado.demo`
-3. Gợi ý trình tự: Admin → **Reset demo** → nhân viên **Clock in** → Admin **Attendance** xem trạng thái → nhân viên xem **Honours** (vinh danh tháng trước) và **Progress** → **Rewards** đổi quà → quầy nhập mã voucher.
-4. Thử trên điện thoại: `npm run share` tạo địa chỉ công khai; ở Wi-Fi văn phòng admin bấm **Add the network I'm on**, sau đó thử chấm trên Wi-Fi và trên 4G.
+3. Gợi ý trình tự: **Quản trị** → **Đặt lại demo** → nhân viên bấm **Chấm vào** → HR xem trang **Chấm công** → nhân viên xem **Vinh danh** (tháng trước) và **Tiến độ** → **Quà tặng** để đổi quà → quầy nhập mã voucher.
+4. Thử trên điện thoại: `npm run share` tạo địa chỉ công khai; ở Wi-Fi văn phòng admin bấm **Thêm mạng tôi đang dùng**, sau đó thử chấm trên Wi-Fi và trên 4G.
 
 ---
 *Toàn bộ dữ liệu nhân sự trong bản demo là giả lập.*

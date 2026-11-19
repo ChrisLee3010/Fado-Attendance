@@ -119,7 +119,7 @@ test("milestones: thresholds, credits and titles", () => {
   assert.deepEqual(milestonesReached(8), [5, 8]);
   assert.deepEqual(milestonesReached(40), [5, 8, 12, 16, 20]);
   assert.equal(milestoneCredits(8), 8);
-  assert.equal(milestoneTitle(12), "12 Perfect Days milestone");
+  assert.equal(milestoneTitle(12), "Mốc 12 Perfect Day");
 });
 
 test("the next milestone says how many Perfect Days remain, and ends after the last one", () => {
