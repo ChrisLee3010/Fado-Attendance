@@ -14,7 +14,7 @@ only; private "on track for" card on each person's Progress page).
 
 **Done 2026-11-19:** product document draft (`docs/tai-lieu-san-pham.md`, Vietnamese) and the whole interface in
 Vietnamese ("credit" and "Perfect Day" kept as product names; Excel export headings in Vietnamese too).
-Still open: load test at FADO's real headcount, the six `[CẦN BỔ SUNG]` spots in the document.
+Still open: load test at FADO's real headcount, the five `[CẦN BỔ SUNG]` spots in the document.
 
 ## Running it
 
