@@ -116,7 +116,7 @@ after(async () => {
 
 test("requests without a session are rejected", async () => {
   const anonymous = new Client();
-  for (const [method, path] of [["GET", "/api/auth/me"], ["GET", "/api/wallet"], ["GET", "/api/admin/overview"], ["GET", "/api/vouchers/WQ-0000"], ["POST", "/api/redeem"], ["POST", "/api/reset"]]) {
+  for (const [method, path] of [["GET", "/api/auth/me"], ["GET", "/api/wallet"], ["GET", "/api/admin/overview"], ["GET", "/api/cashier/overview"], ["GET", "/api/vouchers/WQ-0000"], ["POST", "/api/redeem"], ["POST", "/api/reset"]]) {
     assert.equal((await anonymous.call(method, path, method === "POST" ? {} : undefined)).status, 401, `${method} ${path}`);
   }
 });
@@ -280,12 +280,24 @@ test("an admin's own redemption appears in the admin overview and is fulfilled b
   assert.equal((await admin.call("GET", "/api/admin/overview")).data.redemptions.find((item) => item.code === data.code).status, "used");
 });
 
+test("the cashier sees the reward shelf and the redemption history, but no HR data", async () => {
+  const overview = (await cashier.call("GET", "/api/cashier/overview")).data;
+  assert.deepEqual(overview.catalogue.map((item) => item.id), ["coffee", "lunch", "goodie-bag", "personal-day"]);
+  assert.equal(overview.catalogue.find((item) => item.id === "coffee").stock, 12);
+  assert.equal(overview.redemptions.some((item) => item.code === "WQ-3D71" && item.status === "used"), true);
+  assert.equal(overview.redemptions.some((item) => item.code === "WQ-91AA" && item.status === "issued"), true);
+  assert.deepEqual(overview.stats, { issued: 1, used: 1, creditsRedeemed: 195 });
+  assert.equal("leave" in overview, false, "the cashier does not see leave requests");
+});
+
 test("roles are enforced: nobody can use another role's endpoints", async () => {
   await alex.clockOut("18:05");
   const { data } = await alex.redeem();
 
   const wrongRole = [
     [alex, "GET", "/api/admin/overview", "/"],
+    [admin, "GET", "/api/cashier/overview", "/"],
+    [alex, "GET", "/api/cashier/overview", "/"],
     [alex, "POST", "/api/reset", "/"],
     [alex, "GET", `/api/vouchers/${data.code}`, "/"],
     [alex, "POST", `/api/vouchers/${data.code}/consume`, "/"],

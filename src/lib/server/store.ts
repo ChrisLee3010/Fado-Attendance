@@ -278,12 +278,12 @@ export function redeem(rewardId: string, employeeId: string): Promise<RedeemResu
 
 export type VoucherInfo =
   | { status: "invalid" }
-  | { status: "issued" | "used"; code: string; reward: string; employee: string; employeeId: string; cost: number; usedAt: string | null };
+  | { status: "issued" | "used"; code: string; rewardId: string; reward: string; employee: string; employeeId: string; cost: number; usedAt: string | null };
 
 export async function checkVoucher(code: string): Promise<VoucherInfo> {
   const row = await (await getDb())
     .prepare(
-      `SELECT r.code, r.status, r.cost, r.used_at, w.name AS reward, e.name AS employee, e.id AS employee_id
+      `SELECT r.code, r.status, r.cost, r.used_at, r.reward_id, w.name AS reward, e.name AS employee, e.id AS employee_id
        FROM redemptions r JOIN rewards w ON w.id = r.reward_id JOIN employees e ON e.id = r.employee_id
        WHERE r.code = ?`,
     )
@@ -292,6 +292,7 @@ export async function checkVoucher(code: string): Promise<VoucherInfo> {
   return {
     status: row.status as "issued" | "used",
     code: String(row.code),
+    rewardId: String(row.reward_id),
     reward: String(row.reward),
     employee: String(row.employee),
     employeeId: String(row.employee_id),
@@ -306,6 +307,73 @@ export async function consumeVoucher(code: string, actorId: string) {
     db.prepare("UPDATE redemptions SET status = 'used', used_at = ?, used_by = ? WHERE code = ? AND status = 'issued'").run(stamp(), actorId, normalized),
   );
   return { consumed: Number(changed.changes) === 1, voucher: await checkVoucher(normalized) };
+}
+
+export type CashierOverview = {
+  today: string;
+  catalogue: { id: string; name: string; kind: string; cost: number; stock: number | null }[];
+  redemptions: {
+    id: string;
+    name: string;
+    empId: string;
+    rewardId: string;
+    reward: string;
+    code: string;
+    cost: number;
+    issuedAt: string;
+    usedAt: string | null;
+    status: "issued" | "used";
+  }[];
+  stats: { issued: number; used: number; creditsRedeemed: number };
+};
+
+// What the reward counter needs: what is still on the shelf, and who has already redeemed what.
+// Read-only on purpose — the cashier validates codes, they don't change the catalogue.
+export async function getCashierOverview(): Promise<CashierOverview> {
+  const db = await getDb();
+  const todayDate = today();
+  const [catalogueRows, redemptionRows, totals] = await Promise.all([
+    db.prepare("SELECT id, name, kind, cost, stock FROM rewards ORDER BY cost").all(),
+    db
+      .prepare(
+        `SELECT r.id, r.code, r.cost, r.status, r.issued_at, r.used_at, r.reward_id, w.name AS reward, e.name, e.id AS employee_id
+         FROM redemptions r JOIN rewards w ON w.id = r.reward_id JOIN employees e ON e.id = r.employee_id
+         ORDER BY r.id DESC LIMIT 30`,
+      )
+      .all(),
+    db
+      .prepare("SELECT COUNT(*) AS total, COALESCE(SUM(CASE WHEN status = 'used' THEN 1 ELSE 0 END), 0) AS used, COALESCE(SUM(cost), 0) AS credits FROM redemptions")
+      .get(),
+  ]);
+
+  const used = Number(totals?.used ?? 0);
+  return {
+    today: todayDate,
+    catalogue: catalogueRows.map((row) => ({
+      id: String(row.id),
+      name: String(row.name),
+      kind: String(row.kind),
+      cost: Number(row.cost),
+      stock: row.stock === null ? null : Number(row.stock),
+    })),
+    redemptions: redemptionRows.map((row) => ({
+      id: String(row.id),
+      name: String(row.name),
+      empId: String(row.employee_id),
+      rewardId: String(row.reward_id),
+      reward: String(row.reward),
+      code: String(row.code),
+      cost: Number(row.cost),
+      issuedAt: formatStamp(String(row.issued_at), todayDate),
+      usedAt: row.used_at ? formatStamp(String(row.used_at), todayDate) : null,
+      status: String(row.status) as "issued" | "used",
+    })),
+    stats: {
+      issued: Number(totals?.total ?? 0) - used,
+      used,
+      creditsRedeemed: Number(totals?.credits ?? 0),
+    },
+  };
 }
 
 export async function getAdminOverview() {

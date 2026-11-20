@@ -74,7 +74,7 @@ export function resetDemo() {
 
 export type VoucherInfo =
   | { status: "invalid" }
-  | { status: "issued" | "used"; code: string; reward: string; employee: string; employeeId: string; cost: number; usedAt: string | null };
+  | { status: "issued" | "used"; code: string; rewardId: string; reward: string; employee: string; employeeId: string; cost: number; usedAt: string | null };
 
 export async function checkVoucher(code: string): Promise<VoucherInfo> {
   const response = await fetch(`/api/vouchers/${encodeURIComponent(code.trim())}`, { cache: "no-store" });
