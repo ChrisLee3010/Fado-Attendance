@@ -7,5 +7,5 @@ export async function GET(request: Request) {
   await connection();
   const auth = await authorize(request, "employee");
   if (!auth.ok) return auth.response;
-  return json(getProgress(auth.user.employeeId!));
+  return json(await getProgress(auth.user.employeeId!));
 }

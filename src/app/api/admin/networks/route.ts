@@ -9,7 +9,7 @@ export async function POST(request: Request) {
   if (!auth.ok) return auth.response;
 
   const body = await readJson(request);
-  const result = addNetwork({
+  const result = await addNetwork({
     label: typeof body.label === "string" ? body.label : "",
     cidr: typeof body.cidr === "string" ? body.cidr : undefined,
     useCurrent: body.current === true,

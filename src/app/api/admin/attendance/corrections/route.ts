@@ -11,7 +11,7 @@ export async function POST(request: Request) {
   if (body.kind !== "clock_in" && body.kind !== "clock_out") return json({ ok: false, error: "invalid_kind" }, 400);
   const text = (value: unknown) => (typeof value === "string" ? value : "");
 
-  const result = correctPunch({
+  const result = await correctPunch({
     employeeId: text(body.employeeId),
     date: text(body.date),
     kind: body.kind,

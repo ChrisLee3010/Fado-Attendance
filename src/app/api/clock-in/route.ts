@@ -8,6 +8,6 @@ export async function POST(request: Request) {
   const auth = await authorize(request, "employee");
   if (!auth.ok) return auth.response;
 
-  const result = clockIn(auth.user.employeeId!, { client: clientIp(request), userAgent: userAgentOf(request) });
+  const result = await clockIn(auth.user.employeeId!, { client: clientIp(request), userAgent: userAgentOf(request) });
   return result.ok ? json(result) : json(result, 403);
 }

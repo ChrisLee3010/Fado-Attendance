@@ -8,7 +8,7 @@ export async function POST(request: Request) {
   const auth = await authorize(request, "employee");
   if (!auth.ok) return auth.response;
 
-  const result = clockOut(auth.user.employeeId!, { client: clientIp(request), userAgent: userAgentOf(request) });
+  const result = await clockOut(auth.user.employeeId!, { client: clientIp(request), userAgent: userAgentOf(request) });
   if (result.ok) return json(result);
   return json(result, result.error === "no_clock_in" ? 409 : 403);
 }

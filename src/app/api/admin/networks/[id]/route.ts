@@ -8,5 +8,5 @@ export async function DELETE(request: Request, context: RouteContext<"/api/admin
 
   const { id } = await context.params;
   if (!/^\d+$/.test(id)) return json({ error: "not_found" }, 404);
-  return removeNetwork(Number(id)) ? json({ ok: true }) : json({ error: "not_found" }, 404);
+  return (await removeNetwork(Number(id))) ? json({ ok: true }) : json({ error: "not_found" }, 404);
 }

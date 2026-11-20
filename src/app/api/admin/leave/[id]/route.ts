@@ -10,7 +10,7 @@ export async function POST(request: Request, context: RouteContext<"/api/admin/l
   const body = await readJson(request);
   if (body.decision !== "approved" && body.decision !== "rejected") return json({ error: "invalid_decision" }, 400);
 
-  const result = decideLeave(id, body.decision, auth.user.id);
+  const result = await decideLeave(id, body.decision, auth.user.id);
   if (result.ok) return json(result);
   return json(result, result.error === "not_found" ? 404 : 409);
 }

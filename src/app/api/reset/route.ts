@@ -6,6 +6,6 @@ export async function POST(request: Request) {
   const auth = await authorize(request, "admin");
   if (!auth.ok) return auth.response;
 
-  resetDatabase();
+  await resetDatabase();
   return json({ ok: true });
 }

@@ -31,8 +31,8 @@ function device(userAgent: string | null) {
   return "Khác";
 }
 
-function ModeBanner({ mode }: { mode: "cloudflare" | "local-demo" | null }) {
-  if (mode === "cloudflare") return null;
+function ModeBanner({ mode }: { mode: "cloudflare" | "vercel" | "local-demo" | null }) {
+  if (mode === "cloudflare" || mode === "vercel") return null;
   if (mode === "local-demo") {
     return (
       <p className="desk-banner warn">
@@ -42,7 +42,7 @@ function ModeBanner({ mode }: { mode: "cloudflare" | "local-demo" | null }) {
   }
   return (
     <p className="desk-banner error">
-      <strong>Chưa cấu hình.</strong> Máy chủ không biết lấy IP của người truy cập từ đâu nên mọi lần chấm công đều bị từ chối. Hãy đặt <code>TRUSTED_PROXY=cloudflare</code>.
+      <strong>Chưa cấu hình.</strong> Máy chủ không biết lấy IP của người truy cập từ đâu nên mọi lần chấm công đều bị từ chối. Hãy đặt <code>TRUSTED_PROXY=cloudflare</code> (hoặc <code>vercel</code> khi chạy trên Vercel).
     </p>
   );
 }

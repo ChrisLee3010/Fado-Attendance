@@ -79,7 +79,7 @@ export type ClockAttempt = {
 export type AdminAttendance = {
   loaded: boolean;
   today: string;
-  ipMode: "cloudflare" | "local-demo" | null;
+  ipMode: "cloudflare" | "vercel" | "local-demo" | null;
   you: { ip: string | null; network: string | null };
   networks: OfficeNetwork[];
   attempts: ClockAttempt[];

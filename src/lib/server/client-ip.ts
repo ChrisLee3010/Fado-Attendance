@@ -5,15 +5,17 @@ import { parseIp, type ParsedIp } from "../ip";
 // - "cloudflare": the app sits behind a Cloudflare Tunnel, which overwrites CF-Connecting-IP on every request.
 //   Run the app bound to 127.0.0.1 so the only way in is through the tunnel; otherwise someone on the same
 //   network could reach the port directly and send their own CF-Connecting-IP.
+// - "vercel": the app is hosted on Vercel, whose edge replaces X-Real-IP and X-Forwarded-For on every request, so a
+//   browser cannot fake them. Only set this when the app really runs on Vercel; anywhere else those headers are forgeable.
 // - "local-demo": no proxy. Next.js fills X-Forwarded-For from the socket only when the browser didn't send one,
 //   so a browser CAN fake it. Fine for trying the app on your own computer or LAN, never for the real thing.
 //
 // Unset means local-demo during development and "not configured" in production, which blocks every clock-in.
-export type IpMode = "cloudflare" | "local-demo";
+export type IpMode = "cloudflare" | "vercel" | "local-demo";
 
 export function ipMode(): IpMode | null {
   const configured = process.env.TRUSTED_PROXY;
-  if (configured === "cloudflare" || configured === "local-demo") return configured;
+  if (configured === "cloudflare" || configured === "vercel" || configured === "local-demo") return configured;
   if (!configured && process.env.NODE_ENV !== "production") return "local-demo";
   return null;
 }
@@ -24,6 +26,7 @@ export function clientIp(request: Request): ClientIp {
   const mode = ipMode();
   let raw: string | null = null;
   if (mode === "cloudflare") raw = request.headers.get("cf-connecting-ip");
+  if (mode === "vercel") raw = request.headers.get("x-real-ip") ?? request.headers.get("x-forwarded-for")?.split(",")[0] ?? null;
   if (mode === "local-demo") raw = request.headers.get("x-forwarded-for")?.split(",")[0] ?? null;
   const ip = raw ? parseIp(raw) : null;
   return { ip, text: ip ? raw!.trim() : null, mode };

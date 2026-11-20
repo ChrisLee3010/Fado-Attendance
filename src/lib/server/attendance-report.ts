@@ -3,23 +3,27 @@
 import { summarizeMonth, todayStatus, lateBy, leftEarlyBy, type PunchSource } from "../attendance-status";
 import { isValidTime, evaluatePerfectDay, PERFECT_DAY_CREDITS } from "../perfect-day";
 import { isWeekday, now } from "./clock";
-import { getDb, inTransaction } from "./db";
-import { awardMilestones, loadMonth, shiftOf, type Db } from "./store";
+import { getDb, inTransaction, type Db } from "./db";
+import { awardMilestones, loadMonth, shiftOf } from "./store";
 
-type Employee = { id: string; name: string; department: string };
+type Employee = { id: string; name: string; department: string; shift: { start: string; end: string } };
 
-function employees(db: Db): Employee[] {
-  return db
-    .prepare("SELECT id, name, department FROM employees ORDER BY name")
-    .all()
-    .map((row) => ({ id: String(row.id), name: String(row.name), department: String(row.department) }));
+// Shifts come with the list so the report does not need one more query per person.
+async function employees(db: Db): Promise<Employee[]> {
+  const rows = await db.prepare("SELECT id, name, department, shift_start, shift_end FROM employees ORDER BY name").all();
+  return rows.map((row) => ({
+    id: String(row.id),
+    name: String(row.name),
+    department: String(row.department),
+    shift: { start: String(row.shift_start ?? "09:00"), end: String(row.shift_end ?? "18:00") },
+  }));
 }
 
 type Punch = { time: string; source: PunchSource; note: string | null };
 
-function punchesOn(db: Db, date: string) {
+async function punchesOn(db: Db, date: string) {
   const byEmployee = new Map<string, { in: Punch | null; out: Punch | null }>();
-  for (const row of db.prepare("SELECT employee_id, kind, at_time, source, note FROM attendance_events WHERE work_date = ?").all(date)) {
+  for (const row of await db.prepare("SELECT employee_id, kind, at_time, source, note FROM attendance_events WHERE work_date = ?").all(date)) {
     const entry = byEmployee.get(String(row.employee_id)) ?? { in: null, out: null };
     const punch = { time: String(row.at_time), source: String(row.source) as PunchSource, note: row.note === null ? null : String(row.note) };
     if (row.kind === "clock_in") entry.in = punch;
@@ -29,16 +33,15 @@ function punchesOn(db: Db, date: string) {
   return byEmployee;
 }
 
-export function getTodayBoard() {
-  const db = getDb();
+export async function getTodayBoard() {
+  const db = await getDb();
   const { date, time } = now();
   const scheduled = isWeekday(date);
-  const punches = punchesOn(db, date);
-  const onLeave = new Set(db.prepare("SELECT employee_id FROM days_off WHERE date = ?").all(date).map((row) => String(row.employee_id)));
+  const [punches, leaveRows, people] = await Promise.all([punchesOn(db, date), db.prepare("SELECT employee_id FROM days_off WHERE date = ?").all(date), employees(db)]);
+  const onLeave = new Set(leaveRows.map((row) => String(row.employee_id)));
 
-  const rows = employees(db).map((employee) => {
+  const rows = people.map(({ shift, ...employee }) => {
     const punch = punches.get(employee.id) ?? { in: null, out: null };
-    const shift = shiftOf(db, employee.id);
     const status = todayStatus({ shift, now: time, scheduled, onLeave: onLeave.has(employee.id), clockIn: punch.in, clockOut: punch.out });
     const notes = [punch.in?.note, punch.out?.note].filter((note): note is string => !!note);
     return { ...employee, shift, ...status, notes };
@@ -72,20 +75,22 @@ const shiftMonth = (month: string, delta: number) => {
   return new Date(Date.UTC(year, number - 1 + delta, 1)).toISOString().slice(0, 7);
 };
 
-export function getMonthReport(month: string) {
-  const db = getDb();
+export async function getMonthReport(month: string) {
+  const db = await getDb();
   const todayDate = now().date;
-  const remoteDays = new Map(
+  const [remoteRows, people] = await Promise.all([
     db
       .prepare("SELECT employee_id, COUNT(*) AS days FROM attendance_events WHERE kind = 'clock_in' AND source = 'remote' AND work_date LIKE ? GROUP BY employee_id")
-      .all(`${month}-%`)
-      .map((row) => [String(row.employee_id), Number(row.days)]),
+      .all(`${month}-%`),
+    employees(db),
+  ]);
+  const remoteDays = new Map(remoteRows.map((row) => [String(row.employee_id), Number(row.days)]));
+  const rows = await Promise.all(
+    people.map(async ({ shift, ...employee }) => {
+      const days = await loadMonth(db, employee.id, shift, todayDate, month);
+      return { ...employee, ...summarizeMonth(days, shift, todayDate), remoteDays: remoteDays.get(employee.id) ?? 0 };
+    }),
   );
-  const rows = employees(db).map((employee) => {
-    const shift = shiftOf(db, employee.id);
-    const days = loadMonth(db, employee.id, shift, todayDate, month);
-    return { ...employee, ...summarizeMonth(days, shift, todayDate), remoteDays: remoteDays.get(employee.id) ?? 0 };
-  });
   const current = todayDate.slice(0, 7);
   return { month, previous: shiftMonth(month, -1), next: month < current ? shiftMonth(month, 1) : null, rows };
 }
@@ -113,31 +118,31 @@ export type CorrectionResult = { ok: true; creditAdded: boolean } | { ok: false;
 // Sets one clock-in or clock-out, e.g. "forgot to clock out, left at 18:02". The reason is required and kept with
 // the punch, which is marked as an admin correction everywhere it appears. If the corrected day now qualifies as a
 // Perfect Day that was never credited, the credit is added once, as an adjustment; credits are never taken away.
-export function correctPunch(args: { employeeId: string; date: string; kind: "clock_in" | "clock_out"; time: string; reason: string; actorId: string }): CorrectionResult {
+export async function correctPunch(args: { employeeId: string; date: string; kind: "clock_in" | "clock_out"; time: string; reason: string; actorId: string }): Promise<CorrectionResult> {
   const reason = args.reason.trim();
   if (!isRealDate(args.date)) return { ok: false, error: "invalid_date" };
   if (!isValidTime(args.time)) return { ok: false, error: "invalid_time" };
   if (reason.length < 3 || reason.length > 200) return { ok: false, error: "invalid_reason" };
 
-  return inTransaction((db) => {
+  return inTransaction(async (db) => {
     const { date: todayDate, time: nowTime } = now();
     if (args.date > todayDate || (args.date === todayDate && args.time > nowTime)) return { ok: false, error: "future" } as const;
-    if (!db.prepare("SELECT 1 AS found FROM employees WHERE id = ?").get(args.employeeId)) return { ok: false, error: "unknown_employee" } as const;
+    if (!(await db.prepare("SELECT 1 AS found FROM employees WHERE id = ?").get(args.employeeId))) return { ok: false, error: "unknown_employee" } as const;
 
     const existing = (kind: string) =>
       db.prepare("SELECT id, at_time FROM attendance_events WHERE employee_id = ? AND work_date = ? AND kind = ?").get(args.employeeId, args.date, kind);
-    const clockIn = existing("clock_in");
-    const clockOut = existing("clock_out");
+    const clockIn = await existing("clock_in");
+    const clockOut = await existing("clock_out");
     if (args.kind === "clock_out" && !clockIn) return { ok: false, error: "no_clock_in" } as const;
     if (args.kind === "clock_out" && args.time <= String(clockIn!.at_time)) return { ok: false, error: "out_before_in" } as const;
     if (args.kind === "clock_in" && clockOut && args.time >= String(clockOut.at_time)) return { ok: false, error: "out_before_in" } as const;
 
     const current = args.kind === "clock_in" ? clockIn : clockOut;
     if (current) {
-      db.prepare("UPDATE attendance_events SET at_time = ?, source = 'admin_correction', note = ?, corrected_by = ? WHERE id = ?")
+      await db.prepare("UPDATE attendance_events SET at_time = ?, source = 'admin_correction', note = ?, corrected_by = ? WHERE id = ?")
         .run(args.time, reason, args.actorId, Number(current.id));
     } else {
-      db.prepare("INSERT INTO attendance_events (ext_id, employee_id, kind, work_date, at_time, source, note, corrected_by) VALUES (?, ?, ?, ?, ?, 'admin_correction', ?, ?)")
+      await db.prepare("INSERT INTO attendance_events (ext_id, employee_id, kind, work_date, at_time, source, note, corrected_by) VALUES (?, ?, ?, ?, ?, 'admin_correction', ?, ?)")
         .run(`app:${args.employeeId}:${args.date}:${args.kind === "clock_in" ? "in" : "out"}`, args.employeeId, args.kind, args.date, args.time, reason, args.actorId);
     }
 
@@ -145,13 +150,13 @@ export function correctPunch(args: { employeeId: string; date: string; kind: "cl
     const finalOut = args.kind === "clock_out" ? args.time : clockOut ? String(clockOut.at_time) : null;
     let creditAdded = false;
     if (finalIn && finalOut) {
-      const shift = shiftOf(db, args.employeeId);
-      const credited = db.prepare("SELECT 1 AS found FROM credit_transactions WHERE source_ref IN (?, ?)").get(`perfect-day:${args.employeeId}:${args.date}`, `correction:${args.employeeId}:${args.date}`);
+      const shift = await shiftOf(db, args.employeeId);
+      const credited = await db.prepare("SELECT 1 AS found FROM credit_transactions WHERE source_ref IN (?, ?)").get(`perfect-day:${args.employeeId}:${args.date}`, `correction:${args.employeeId}:${args.date}`);
       if (!credited && evaluatePerfectDay(shift, finalIn, finalOut).qualifies) {
-        db.prepare("INSERT INTO credit_transactions (employee_id, amount, type, title, occurred_on, occurred_time, source_ref, actor) VALUES (?, ?, 'adjustment', 'Điều chỉnh công', ?, ?, ?, ?)")
+        await db.prepare("INSERT INTO credit_transactions (employee_id, amount, type, title, occurred_on, occurred_time, source_ref, actor) VALUES (?, ?, 'adjustment', 'Điều chỉnh công', ?, ?, ?, ?)")
           .run(args.employeeId, PERFECT_DAY_CREDITS, todayDate, nowTime, `perfect-day:${args.employeeId}:${args.date}`, args.actorId);
         creditAdded = true;
-        if (args.date.slice(0, 7) === todayDate.slice(0, 7)) awardMilestones(db, args.employeeId, shift, todayDate, nowTime);
+        if (args.date.slice(0, 7) === todayDate.slice(0, 7)) await awardMilestones(db, args.employeeId, shift, todayDate, nowTime);
       }
     }
     return { ok: true, creditAdded } as const;
@@ -169,20 +174,23 @@ function csvCell(value: string | number | null) {
 
 // One row per person per day, for HR's spreadsheet or payroll. Starts with a byte-order mark so Excel reads
 // Vietnamese names correctly.
-export function monthCsv(month: string) {
-  const db = getDb();
+export async function monthCsv(month: string) {
+  const db = await getDb();
   const todayDate = now().date;
   const header = ["Ngày", "Mã nhân viên", "Họ tên", "Phòng ban", "Trạng thái", "Giờ vào", "Giờ ra", "Phút trễ", "Phút về sớm", "Ghi nhận qua", "Ghi chú sửa công"];
   const lines = [header.map(csvCell).join(",")];
 
   const details = new Map<string, Punch>();
-  for (const row of db.prepare("SELECT employee_id, kind, work_date, at_time, source, note FROM attendance_events WHERE work_date LIKE ?").all(`${month}-%`)) {
+  const [detailRows, people] = await Promise.all([
+    db.prepare("SELECT employee_id, kind, work_date, at_time, source, note FROM attendance_events WHERE work_date LIKE ?").all(`${month}-%`),
+    employees(db),
+  ]);
+  for (const row of detailRows) {
     details.set(`${row.employee_id}:${row.work_date}:${row.kind}`, { time: String(row.at_time), source: String(row.source) as PunchSource, note: row.note === null ? null : String(row.note) });
   }
 
-  for (const employee of employees(db)) {
-    const shift = shiftOf(db, employee.id);
-    for (const day of loadMonth(db, employee.id, shift, todayDate, month)) {
+  for (const { shift, ...employee } of people) {
+    for (const day of await loadMonth(db, employee.id, shift, todayDate, month)) {
       if (day.date > todayDate || (day.kind === "weekend" && !day.clockIn)) continue;
       const clockIn = details.get(`${employee.id}:${day.date}:clock_in`);
       const clockOut = details.get(`${employee.id}:${day.date}:clock_out`);

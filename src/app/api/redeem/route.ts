@@ -9,7 +9,7 @@ export async function POST(request: Request) {
   const body = await readJson(request);
   if (typeof body.rewardId !== "string") return json({ error: "invalid_reward" }, 400);
 
-  const result = redeem(body.rewardId, auth.user.employeeId!);
+  const result = await redeem(body.rewardId, auth.user.employeeId!);
   if (result.ok) return json(result);
   return json(result, result.error === "unknown_reward" ? 404 : 409);
 }

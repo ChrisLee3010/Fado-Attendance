@@ -9,5 +9,5 @@ export async function GET(request: Request, context: RouteContext<"/api/vouchers
   if (!auth.ok) return auth.response;
 
   const { code } = await context.params;
-  return json(checkVoucher(code));
+  return json(await checkVoucher(code));
 }

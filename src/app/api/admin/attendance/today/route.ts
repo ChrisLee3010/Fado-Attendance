@@ -7,5 +7,5 @@ export async function GET(request: Request) {
   await connection();
   const auth = await authorize(request, "admin");
   if (!auth.ok) return auth.response;
-  return json(getTodayBoard());
+  return json(await getTodayBoard());
 }

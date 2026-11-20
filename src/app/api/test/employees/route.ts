@@ -13,5 +13,5 @@ export async function POST(request: Request) {
   const body = await readJson(request);
   const count = typeof body.count === "number" ? body.count : NaN;
   if (!Number.isFinite(count) || count < 0) return json({ error: "invalid_count" }, 400);
-  return json({ ok: true, ...createLoadEmployees(count) });
+  return json({ ok: true, ...(await createLoadEmployees(count)) });
 }

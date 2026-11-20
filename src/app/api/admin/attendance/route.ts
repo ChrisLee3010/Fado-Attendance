@@ -18,7 +18,7 @@ export async function GET(request: Request) {
     ipMode: client.mode,
     // formatIp turns "::ffff:192.168.1.2" (how IPv4 can arrive) into the plain "192.168.1.2" people expect to see.
     you: { ip: client.ip ? formatIp(client.ip) : null, network: client.ip ? formatRange(rangeForCurrentNetwork(client.ip)) : null },
-    networks: listNetworks(),
-    attempts: recentAttempts(),
+    networks: await listNetworks(),
+    attempts: await recentAttempts(),
   });
 }

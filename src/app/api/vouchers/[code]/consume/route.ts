@@ -7,7 +7,7 @@ export async function POST(request: Request, context: RouteContext<"/api/voucher
   if (!auth.ok) return auth.response;
 
   const { code } = await context.params;
-  const result = consumeVoucher(code, auth.user.id);
+  const result = await consumeVoucher(code, auth.user.id);
   if (result.consumed) return json(result);
   return json(result, result.voucher.status === "invalid" ? 404 : 409);
 }

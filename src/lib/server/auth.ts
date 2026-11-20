@@ -15,11 +15,9 @@ export type SessionUser = { id: string; email: string; name: string; roles: Role
 
 export const roleHome = (roles: Role[]) => (roles.includes("employee") ? "/" : roles.includes("admin") ? "/admin" : "/cashier");
 
-function loadRoles(userId: string) {
-  return getDb()
-    .prepare("SELECT role FROM user_roles WHERE user_id = ? ORDER BY role")
-    .all(userId)
-    .map((row) => String(row.role) as Role);
+async function loadRoles(userId: string) {
+  const rows = await (await getDb()).prepare("SELECT role FROM user_roles WHERE user_id = ? ORDER BY role").all(userId);
+  return rows.map((row) => String(row.role) as Role);
 }
 
 const hashToken = (token: string) => createHash("sha256").update(token).digest("hex");
@@ -69,8 +67,8 @@ export function login(rawEmail: string, password: string): Promise<LoginResult> 
 async function attemptLogin(email: string, password: string): Promise<LoginResult> {
   if (isLockedOut(email)) return { ok: false, error: "too_many_attempts" };
 
-  const db = getDb();
-  const row = db.prepare("SELECT id, email, name, employee_id, password_hash FROM users WHERE email = ?").get(email);
+  const db = await getDb();
+  const row = await db.prepare("SELECT id, email, name, employee_id, password_hash FROM users WHERE email = ?").get(email);
   const passwordOk = await verifyPassword(password, row ? String(row.password_hash) : DUMMY_HASH);
   if (!row || !passwordOk) {
     recordFailure(email);
@@ -80,13 +78,13 @@ async function attemptLogin(email: string, password: string): Promise<LoginResul
   failures.delete(email);
   const token = randomBytes(32).toString("hex");
   const now = Math.floor(Date.now() / 1000);
-  db.prepare("DELETE FROM sessions WHERE expires_at < ?").run(now);
-  db.prepare("INSERT INTO sessions (token_hash, user_id, expires_at) VALUES (?, ?, ?)").run(hashToken(token), String(row.id), now + SESSION_SECONDS);
+  await db.prepare("DELETE FROM sessions WHERE expires_at < ?").run(now);
+  await db.prepare("INSERT INTO sessions (token_hash, user_id, expires_at) VALUES (?, ?, ?)").run(hashToken(token), String(row.id), now + SESSION_SECONDS);
 
   return {
     ok: true,
     token,
-    user: { id: String(row.id), email: String(row.email), name: String(row.name), roles: loadRoles(String(row.id)), employeeId: row.employee_id ? String(row.employee_id) : null },
+    user: { id: String(row.id), email: String(row.email), name: String(row.name), roles: await loadRoles(String(row.id)), employeeId: row.employee_id ? String(row.employee_id) : null },
   };
 }
 
@@ -103,21 +101,21 @@ export async function setSessionCookie(token: string) {
 export async function endSession() {
   const store = await cookies();
   const token = store.get(SESSION_COOKIE)?.value;
-  if (token) getDb().prepare("DELETE FROM sessions WHERE token_hash = ?").run(hashToken(token));
+  if (token) await (await getDb()).prepare("DELETE FROM sessions WHERE token_hash = ?").run(hashToken(token));
   store.delete(SESSION_COOKIE);
 }
 
 export async function currentUser(): Promise<SessionUser | null> {
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
   if (!token) return null;
-  const row = getDb()
+  const row = await (await getDb())
     .prepare(
       `SELECT u.id, u.email, u.name, u.employee_id FROM sessions s JOIN users u ON u.id = s.user_id
        WHERE s.token_hash = ? AND s.expires_at > ?`,
     )
     .get(hashToken(token), Math.floor(Date.now() / 1000));
   if (!row) return null;
-  return { id: String(row.id), email: String(row.email), name: String(row.name), roles: loadRoles(String(row.id)), employeeId: row.employee_id ? String(row.employee_id) : null };
+  return { id: String(row.id), email: String(row.email), name: String(row.name), roles: await loadRoles(String(row.id)), employeeId: row.employee_id ? String(row.employee_id) : null };
 }
 
 function isSameOrigin(request: Request) {
