@@ -38,7 +38,7 @@ Workday Quest thay thế hoàn toàn máy chấm công vân tay bằng **một c
 |---|---|
 | Thay thế hoàn toàn máy chấm công, chạy độc lập | Chấm công trên điện thoại, xác nhận bằng mạng văn phòng (mục 3.1). Không kết nối máy cũ. |
 | Thu hút: nhân sự háo hức, muốn mở lại mỗi ngày | Perfect Day, mốc thưởng, ví credit, đổi quà (mục 4) |
-| Tự nguyện & vinh danh: không so sánh hơn thua, hằng tháng tự vinh danh người chuyên cần nhất | Không có xếp hạng (mục 4.5). Vinh danh hằng tháng: **chưa có trong bản này** (mục 4.4) |
+| Tự nguyện & vinh danh: không so sánh hơn thua, hằng tháng tự vinh danh người chuyên cần nhất | Không có xếp hạng nào (mục 4.4). Vinh danh hằng tháng không thuộc phạm vi bản này (mục 3.3) |
 | Dùng đồng loạt: cả công ty chấm cùng lúc vẫn nhanh, mượt | Một chạm, một yêu cầu nhỏ tới máy chủ; đã kiểm thử chấm đồng thời (mục 7) |
 
 ## 3. Lựa chọn phạm vi
@@ -82,6 +82,7 @@ chuyển sang 4G thì bị từ chối với địa chỉ IP khác.
 | **Tên miền cố định** | Bản thi chạy cục bộ | Ví dụ `chamcong.fadoai.com` trên máy chủ công ty |
 | **Face ID / vân tay trên điện thoại** (passkey) | Cần tên miền cố định; SSO đã giảm phần lớn rủi ro chấm hộ | Xác nhận bằng Face ID mỗi lần chấm. Máy chủ không bao giờ nhận dữ liệu sinh trắc học |
 | Kết nối máy vân tay / mục "Dữ Liệu Chấm Công" trên AssetFlow | Đề bài yêu cầu chạy độc lập | Đồng bộ dữ liệu sang AssetFlow khi được duyệt |
+| **Vinh danh hằng tháng** | Không thuộc phạm vi bản thi | Có thể bổ sung sau; báo cáo theo tháng ở trang Chấm công đã cho biết ai không vắng, ai không trễ |
 | Tính lương | Ngoài phạm vi chấm công | HR dùng file Excel xuất ra |
 | Dữ liệu nhân sự thật | Bảo mật | Bản thi dùng dữ liệu giả lập |
 
@@ -112,14 +113,7 @@ Mọi phần thưởng đến từ thành tích của chính mình; không có b
 
 [CẦN BỔ SUNG: danh sách và giá quà là ví dụ; cần HR/BOD xác nhận ngân sách.]
 
-### 4.4 Vinh danh hằng tháng
-Đề bài yêu cầu hằng tháng **vinh danh người chuyên cần nhất**, đồng thời **không so sánh hơn thua**.
-
-[CẦN BỔ SUNG: bản này hiện **chưa có** trang vinh danh hằng tháng (đã bỏ khỏi bản thi). Cần quyết định cách đáp ứng yêu cầu này
-(ví dụ HR công bố danh sách người chuyên cần mỗi tháng dựa trên báo cáo tháng ở trang Chấm công) rồi ghi vào đây.
-Dữ liệu cần thiết đã có sẵn: báo cáo theo tháng cho biết ai không vắng, ai không trễ, ai đủ Perfect Day.]
-
-### 4.5 Nguyên tắc chống "so sánh hơn thua"
+### 4.4 Nguyên tắc chống "so sánh hơn thua"
 - Nhân viên **chỉ xem được dữ liệu của chính mình** (có kiểm thử tự động bảo đảm điều này).
 - Không có bảng xếp hạng, điểm số hay phần trăm so với người khác ở bất kỳ màn hình nào.
 - Số liệu chi tiết về đi trễ/vắng chỉ dành cho HR.

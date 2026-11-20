@@ -19,8 +19,9 @@ Vietnamese ("credit" and "Perfect Day" kept as product names; Excel export headi
 **Done 2026-11-20:** load test (`npm run test:server`, then `PEOPLE=1500 npm run test:rush`). It found and fixed two real
 problems: pages polled every 2 s (now 15 s, paused in background tabs) and the database scanned whole tables (indexes added).
 Passes up to 3,000 people (p95 under 150 ms, no errors). Results are in section 7.1 of the product document.
-Honour wall removed (see above). Still open: the five `[CẦN BỔ SUNG]` spots in the document, including how to meet the
-brief's monthly-recognition requirement now that the page is gone.
+Honour wall removed (see above). **Decision 2026-11-20: monthly recognition is out of scope for now** ("I don't think it
+needs it"); the product document lists it under "not in this version" and has no placeholder for it. Still open: the four
+`[CẦN BỔ SUNG]` spots in the document (name, real pain points, reward prices, company IP stability).
 
 ## Running it
 
