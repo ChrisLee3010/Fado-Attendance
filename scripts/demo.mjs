@@ -13,7 +13,7 @@
 // Stop `npm run dev` first if it is using port 3000, or choose another port:  DEMO_PORT=3400 npm run demo
 import { spawn } from "node:child_process";
 import { existsSync, mkdirSync, rmSync } from "node:fs";
-import { availableParallelism } from "node:os";
+import { availableParallelism, networkInterfaces } from "node:os";
 import net from "node:net";
 import path from "node:path";
 import { DEMO_ACCOUNTS, DEMO_PASSWORD } from "../src/lib/demo-accounts.ts";
@@ -94,9 +94,17 @@ for (let attempt = 0; attempt < 60; attempt++) {
 }
 
 const label = (email) => DEMO_ACCOUNTS.find((account) => account.email === email)?.label ?? "";
+
+// This computer's address on the Wi-Fi/network, e.g. 192.168.1.2. Opening the app through it (instead of localhost)
+// makes the app see a real address, which is the clearest way to show that the check really works on the IP.
+const lanAddress = Object.values(networkInterfaces())
+  .flat()
+  .find((entry) => entry && entry.family === "IPv4" && !entry.internal)?.address;
+
 console.log(`
 ==============================  DEMO READY  ==============================
   Open:       http://localhost:${PORT}
+  Real IP:    ${lanAddress ? `http://${lanAddress}:${PORT}   (same app, reached by this computer's network address)` : "(no network address found: use localhost)"}
   Demo day:   ${day} (a weekday), clock frozen at ${START_TIME}
   Password:   ${DEMO_PASSWORD}    (the login page can also fill it in for you)
 

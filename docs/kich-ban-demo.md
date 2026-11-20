@@ -10,7 +10,7 @@ Thời lượng gợi ý: **8–10 phút**. Mọi bước dưới đây đã đ�
 | 2 | **Terminal 1**: chạy demo | `cd workday-quest` → `npm run demo`. Lần đầu mất khoảng 1 phút để build; chờ khung **DEMO READY** |
 | 3 | **Terminal 2**: để sẵn lệnh đổi giờ | `npm run demo:time -- 08:55` (đổi con số khi cần) |
 | 4 | Hai cửa sổ trình duyệt | Cửa sổ thường = **HR** (`admin@fado.demo`). Cửa sổ ẩn danh (`Ctrl+Shift+N`) = **nhân viên** (`alex@fado.demo`). Trang đăng nhập có nút điền sẵn tài khoản demo, chỉ cần bấm tên |
-| 5 | Mở `http://localhost:3000` ở cả hai cửa sổ, đăng nhập sẵn | HR vào trang **Chấm công**; nhân viên ở trang **Hôm nay** |
+| 5 | Mở dòng **Real IP** (dạng `http://192.168.x.x:3000`, in trong khung DEMO READY) ở cả hai cửa sổ, đăng nhập sẵn | HR vào trang **Chấm công**; nhân viên ở trang **Hôm nay**. Dùng `localhost` nếu dòng đó không mở được (xem bước B) |
 | 6 | Meet: chia sẻ **toàn bộ màn hình**, thu nhỏ terminal sang một góc | Hoặc đặt terminal ở màn hình thứ hai nếu có |
 | 7 | **Dự phòng**: tự quay một video chạy thử (Meet có "Ghi" hoặc dùng OBS) | Nếu có sự cố mạng/máy, mở video thay thế |
 | 8 | Điền 4 chỗ `[CẦN BỔ SUNG]` trong `docs/tai-lieu-san-pham.md` | Họ tên, điểm đau thực tế, giá quà, độ ổn định IP công ty |
@@ -29,15 +29,20 @@ Mỗi lần chạy `npm run demo` là một cơ sở dữ liệu **mới hoàn t
 - Cửa sổ HR, trang **Chấm công**: mọi người đang "Chưa đến giờ".
 - Nói: *"HR không còn phải gộp dữ liệu vân tay và tin nhắn Telegram, mọi thứ ở một chỗ."*
 
-### B. 08:50 · Kiểm tra mạng văn phòng, thay cho máy vân tay (2 phút)
-Đây là phần quan trọng nhất: nó trả lời câu hỏi "bỏ máy thì làm sao biết họ ở văn phòng?".
+### B. 08:50 · Kiểm tra mạng văn phòng, thay cho máy vân tay (2–3 phút)
+Đây là phần quan trọng nhất: nó trả lời câu hỏi "bỏ máy thì làm sao biết họ ở văn phòng?". Cách làm tốt nhất là cho thấy **địa chỉ IP thật**:
+ở **cả hai cửa sổ**, mở app bằng dòng **"Real IP"** trong khung DEMO READY (dạng `http://192.168.x.x:3000`, là địa chỉ của chính máy này trong mạng Wi-Fi) thay vì `localhost`. Đây vẫn là cùng một app, nhưng app sẽ thấy một địa chỉ IP thật và địa chỉ đó **chưa nằm trong danh sách mạng văn phòng**.
+
 1. Gõ `npm run demo:time -- 08:50`.
-2. HR: **Quản trị** → mục **Mạng văn phòng** → bấm **Xoá** hai dòng "Máy tính này…" (mô phỏng "đang ở ngoài văn phòng").
-3. Cửa sổ nhân viên (Alex): dòng trạng thái đã đổi thành **"Chưa ở mạng văn phòng"**. Bấm **Chấm vào** → bị **từ chối** kèm hướng dẫn (kết nối Wi-Fi văn phòng; tắt VPN nếu đang dùng).
-4. HR: kéo xuống **Nhật ký chấm công** → thấy dòng "Từ chối: Không ở mạng văn phòng" cùng địa chỉ IP. Nói: *"Mọi lần chấm, kể cả bị từ chối, đều có dấu vết để HR tra khi có người nói 'tôi không chấm được'."*
-5. (Tuỳ chọn, 20 giây) Đăng nhập Sarah ở cửa sổ khác: người **được phép làm từ xa** chấm vào thì được ghi nhận **"Từ xa"** thay vì bị từ chối.
-6. HR: bấm **Thêm mạng tôi đang dùng**. Mạng xuất hiện trong danh sách. Nói: *"Admin thêm mạng văn phòng bằng một nút; có thể thêm nhiều tầng, nhiều văn phòng. Cả chấm vào lẫn chấm ra đều được kiểm tra."*
+2. Cửa sổ nhân viên (Alex): dòng trạng thái là **"Chưa ở mạng văn phòng · 192.168.x.x"**. Bấm **Chấm vào** → bị **từ chối**, câu thông báo nêu rõ địa chỉ IP đang kết nối và hướng dẫn (kết nối Wi-Fi văn phòng; tắt VPN nếu đang dùng). Nếu dòng trạng thái chưa đổi, bấm F5. Bấm nút luôn cho kết quả thật.
+3. HR: **Quản trị** → **Mạng văn phòng**: thấy **"Bạn đang kết nối từ 192.168.x.x"**, và ở **Nhật ký chấm công** có dòng "Từ chối: Không ở mạng văn phòng" cùng IP đó. Nói: *"Mọi lần chấm, kể cả bị từ chối, đều có dấu vết để HR tra khi có người nói 'tôi không chấm được'."*
+4. (Tuỳ chọn, 20 giây) Đăng nhập Sarah ở một cửa sổ khác: người **được phép làm từ xa** chấm vào thì được ghi nhận **"Từ xa"** thay vì bị từ chối.
+5. HR: bấm **Thêm mạng tôi đang dùng**. Mạng `192.168.x.x/32` xuất hiện trong danh sách. Nói: *"Admin thêm mạng văn phòng bằng một nút; có thể thêm nhiều tầng, nhiều văn phòng. Cả chấm vào lẫn chấm ra đều được kiểm tra."* Alex bấm **Chấm vào** lại ở bước C sẽ được chấp nhận.
+6. (Tuỳ chọn, điểm nhấn) HR bấm **Xoá** dòng vừa thêm → Alex mất quyền ngay; thêm lại → có quyền lại. Nói: *"Quyền chấm công nằm ở danh sách mạng này, không nằm ở thiết bị hay tài khoản."*
 7. Nhắc: *"Tôi đã thử thật trên điện thoại ở Wi-Fi công ty và 4G: Wi-Fi được chấp nhận sau khi thêm mạng, 4G bị từ chối."*
+
+**Phương án dự phòng (không có mạng, hoặc dòng "Real IP" không mở được):** dùng `localhost`. Máy này mặc định được tính là "văn phòng" (hai dòng "Máy tính này…"), nên
+**Xoá** cả hai dòng đó (mô phỏng "đang ở ngoài văn phòng"), cho Alex chấm vào để thấy bị từ chối, rồi **Thêm mạng tôi đang dùng**. Ở cách này app chỉ thấy địa chỉ nội bộ `::1` chứ chưa phải IP thật.
 
 ### C. 08:55 · Chấm vào một chạm (1 phút)
 1. `npm run demo:time -- 08:55`.
