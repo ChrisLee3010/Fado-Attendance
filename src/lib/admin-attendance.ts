@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { createPolledStore, post } from "./api";
+import { HR_POLL_MS } from "./polling";
 import type { MonthSummary, TodayRow } from "./attendance-status";
 
 export type BoardRow = TodayRow & { id: string; name: string; department: string; shift: { start: string; end: string }; notes: string[] };
@@ -16,7 +17,7 @@ export type TodayBoard = {
 const boardStore = createPolledStore<TodayBoard>(
   "/api/admin/attendance/today",
   { loaded: false, today: "", now: "", scheduled: true, rows: [], counts: { present: 0, remote: 0, late: 0, notIn: 0, notYet: 0, onLeave: 0 } },
-  5000,
+  HR_POLL_MS,
 );
 
 export function useTodayBoard() {

@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from "react";
 import { createPolledStore, post, remove } from "./api";
+import { HR_POLL_MS } from "./polling";
 
 export type LeaveRequest = {
   id: string;
@@ -42,7 +43,7 @@ const adminStore = createPolledStore<AdminOverview>("/api/admin/overview", {
   redemptions: [],
   catalogue: [],
   stats: { pendingLeave: 0, vouchersIssued: 0, creditsRedeemed: 0 },
-});
+}, HR_POLL_MS);
 
 export function useAdminOverview() {
   return useSyncExternalStore(adminStore.subscribe, adminStore.getSnapshot, () => adminStore.initial);
@@ -91,7 +92,7 @@ const attendanceStore = createPolledStore<AdminAttendance>("/api/admin/attendanc
   you: { ip: null, network: null },
   networks: [],
   attempts: [],
-});
+}, HR_POLL_MS);
 
 export function useAdminAttendance() {
   return useSyncExternalStore(attendanceStore.subscribe, attendanceStore.getSnapshot, () => attendanceStore.initial);

@@ -1,5 +1,6 @@
 import { useEffect, useSyncExternalStore } from "react";
 import { createPolledStore, post } from "./api";
+import { ME_POLL_MS } from "./polling";
 import type { Role } from "./demo-accounts";
 
 export type Me = {
@@ -10,7 +11,7 @@ export type Me = {
   home: string;
 };
 
-const meStore = createPolledStore<Me>("/api/auth/me", { loaded: false, name: "", firstName: "", roles: [], home: "/" }, 30000);
+const meStore = createPolledStore<Me>("/api/auth/me", { loaded: false, name: "", firstName: "", roles: [], home: "/" }, ME_POLL_MS);
 
 export function useMe() {
   return useSyncExternalStore(meStore.subscribe, meStore.getSnapshot, () => meStore.initial);

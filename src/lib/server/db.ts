@@ -114,6 +114,14 @@ CREATE TABLE IF NOT EXISTS leave_requests (
   decided_at TEXT,
   decided_by TEXT
 );
+
+-- Without these, every lookup read the whole table, so a request got slower the more people the company had
+-- (at 1,500 people each page load was scanning ~37,000 punch rows). They go last because they need the tables above.
+-- CREATE INDEX IF NOT EXISTS runs on every start, so existing databases pick them up with no migration.
+CREATE INDEX IF NOT EXISTS attendance_by_person_day ON attendance_events (employee_id, work_date);
+CREATE INDEX IF NOT EXISTS attendance_by_day ON attendance_events (work_date);
+CREATE INDEX IF NOT EXISTS credits_by_person ON credit_transactions (employee_id, occurred_on);
+CREATE INDEX IF NOT EXISTS redemptions_by_person ON redemptions (employee_id, reward_id);
 `;
 
 // Columns ending in _at hold "YYYY-MM-DD HH:MM" in Vietnam time; labels like "Today · 09:40" are built when read.
@@ -199,9 +207,8 @@ const FILLER_DAYS: Record<string, DayScript[]> = {
   EMP006: [{ in: "08:56", out: "18:01" }, { in: "08:58", out: "18:03" }, { in: "09:02", out: "18:00" }],
 };
 
-// Last month, so the honour wall (which only shows finished months) has something to show. Punches only, no credits.
-// Each person ends up on a different level: Daniel a Perfect month, Alex on time every day (one late clock-out),
-// Sarah never missed a day (late once), Minh one absence (not on the wall).
+// Last month's punches (no credits), so HR's "previous month" view has data. Each person has a different story:
+// Daniel perfect all month, Alex never late (one late clock-out), Sarah late once, Minh absent one day.
 function lastMonthDay(employeeId: string, index: number): DayScript {
   const day = { in: `08:5${1 + ((index * 3) % 9)}`, out: `18:0${(index * 7) % 10}` };
   if (employeeId === "EMP001" && index % 9 === 4) return { ...day, out: "18:25" };

@@ -9,12 +9,18 @@ company's public IP stays the same over days.
 the fixed domain move to "rollout ideas" for the product document, together with FADO SSO sign-in.
 
 **Done 2026-11-18/19:** admin attendance view (today, lateness, month totals, corrections, Excel export) and the
-monthly honour wall (levels, not rankings: Perfect month / On time, every day / Never missed a day; finished months
+monthly honour wall (built, then **removed on 2026-11-20 at the user's request**: the page, menu item, Progress card, API
+and tests are gone; commit 21684dc has the last version if it is ever wanted back. The brief still asks for monthly
+recognition, so the product document carries a placeholder for it. Original design: levels, not rankings: Perfect month / On time, every day / Never missed a day; finished months
 only; private "on track for" card on each person's Progress page).
 
 **Done 2026-11-19:** product document draft (`docs/tai-lieu-san-pham.md`, Vietnamese) and the whole interface in
 Vietnamese ("credit" and "Perfect Day" kept as product names; Excel export headings in Vietnamese too).
-Still open: load test at FADO's real headcount, the five `[CẦN BỔ SUNG]` spots in the document.
+**Done 2026-11-20:** load test (`npm run test:server`, then `PEOPLE=1500 npm run test:rush`). It found and fixed two real
+problems: pages polled every 2 s (now 15 s, paused in background tabs) and the database scanned whole tables (indexes added).
+Passes up to 3,000 people (p95 under 150 ms, no errors). Results are in section 7.1 of the product document.
+Honour wall removed (see above). Still open: the five `[CẦN BỔ SUNG]` spots in the document, including how to meet the
+brief's monthly-recognition requirement now that the page is gone.
 
 ## Running it
 

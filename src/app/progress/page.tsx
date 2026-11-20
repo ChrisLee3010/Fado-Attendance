@@ -5,7 +5,6 @@ import { useState } from "react";
 import { AppRail } from "@/components/app-rail";
 import { SignOutButton } from "@/components/sign-out-button";
 import { formatDay, formatMonth as monthLabel, formatShort as shortDate, weekdayName } from "@/lib/history";
-import { HONOUR_TITLES } from "@/lib/honours";
 import { weekdayIndex, type DayInfo, type DayKind } from "@/lib/progress";
 import { useProgress } from "@/lib/progress-store";
 import { useMe } from "@/lib/session";
@@ -205,32 +204,6 @@ export default function ProgressPage() {
                 ))}
               </ul>
             )}
-          </div>
-        </section>
-
-        <section className="pg-section" aria-labelledby="honour-heading">
-          <h2 id="honour-heading">Bảng vinh danh</h2>
-          <div className="pg-card pg-honour">
-            <span className="pg-honour-icon" aria-hidden="true">{progress.honour.tier ? HONOUR_TITLES[progress.honour.tier].icon : "🌱"}</span>
-            <div>
-              {progress.honour.tier ? (
-                <>
-                  <strong>{progress.honour.daysSoFar === 0 ? "Một tháng mới" : `Bạn đang trên đà đạt: ${HONOUR_TITLES[progress.honour.tier].title}`}</strong>
-                  <p>
-                    {progress.honour.daysSoFar === 0
-                      ? "Mỗi ngày làm việc trong tháng là một Perfect Day sẽ đưa bạn lên bảng vinh danh với danh hiệu Tháng hoàn hảo."
-                      : `${HONOUR_TITLES[progress.honour.tier].description} Còn ${progress.honour.daysLeft} ngày làm việc.`}
-                  </p>
-                </>
-              ) : (
-                <>
-                  <strong>Tháng sau là một khởi đầu mới</strong>
-                  <p>Lỡ một ngày nghĩa là tháng này chưa có danh hiệu trên bảng vinh danh. Mỗi Perfect Day vẫn được cộng credit.</p>
-                </>
-              )}
-              <p className="pg-hint">Chỉ bạn thấy mục này. Bảng vinh danh chỉ hiển thị các tháng đã kết thúc, không xếp hạng.</p>
-            </div>
-            <Link className="pg-link" href="/honours">Xem bảng vinh danh</Link>
           </div>
         </section>
 

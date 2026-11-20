@@ -16,7 +16,7 @@ Workday Quest thay thế hoàn toàn máy chấm công vân tay bằng **một c
 
 *Giao diện ứng dụng hoàn toàn bằng tiếng Việt; tài liệu này ghi tên nút và màn hình đúng như trên ứng dụng. "Credit" và "Perfect Day" được giữ nguyên làm tên riêng của sản phẩm.*
 - **Lý do muốn chấm công đều đặn:** mỗi ngày đúng giờ là một **Perfect Day** (+2 credit), tích đủ mốc nhận thêm thưởng, đổi credit lấy cà phê, bữa trưa, quà FADO hoặc một ngày nghỉ.
-- **Vinh danh hằng tháng không so sánh hơn thua:** ai đạt cấp độ nào thì được ghi tên ở cấp đó, xếp theo bảng chữ cái, **không xếp hạng, không con số**.
+- **Không so sánh hơn thua:** nhân viên chỉ xem được dữ liệu của chính mình; không có bảng xếp hạng nào.
 - **Cho HR:** ai có mặt hôm nay, ai đi trễ bao nhiêu phút, tổng hợp theo tháng, sửa công có lý do, xuất Excel.
 
 ## 2. Vấn đề
@@ -38,7 +38,7 @@ Workday Quest thay thế hoàn toàn máy chấm công vân tay bằng **một c
 |---|---|
 | Thay thế hoàn toàn máy chấm công, chạy độc lập | Chấm công trên điện thoại, xác nhận bằng mạng văn phòng (mục 3.1). Không kết nối máy cũ. |
 | Thu hút: nhân sự háo hức, muốn mở lại mỗi ngày | Perfect Day, mốc thưởng, ví credit, đổi quà (mục 4) |
-| Tự nguyện & vinh danh: không so sánh hơn thua, hằng tháng tự vinh danh người chuyên cần nhất | Bảng vinh danh theo cấp độ, không xếp hạng (mục 4.4) |
+| Tự nguyện & vinh danh: không so sánh hơn thua, hằng tháng tự vinh danh người chuyên cần nhất | Không có xếp hạng (mục 4.5). Vinh danh hằng tháng: **chưa có trong bản này** (mục 4.4) |
 | Dùng đồng loạt: cả công ty chấm cùng lúc vẫn nhanh, mượt | Một chạm, một yêu cầu nhỏ tới máy chủ; đã kiểm thử chấm đồng thời (mục 7) |
 
 ## 3. Lựa chọn phạm vi
@@ -112,25 +112,12 @@ Mọi phần thưởng đến từ thành tích của chính mình; không có b
 
 [CẦN BỔ SUNG: danh sách và giá quà là ví dụ; cần HR/BOD xác nhận ngân sách.]
 
-### 4.4 Vinh danh hằng tháng: cấp độ, không xếp hạng
-Đề bài vừa yêu cầu **vinh danh người chuyên cần nhất**, vừa yêu cầu **không so sánh hơn thua**. Cách giải quyết:
-mỗi người đạt cấp độ dựa trên **hồ sơ của chính mình**, và tất cả những ai đạt cùng cấp được ghi tên **cùng nhau**.
+### 4.4 Vinh danh hằng tháng
+Đề bài yêu cầu hằng tháng **vinh danh người chuyên cần nhất**, đồng thời **không so sánh hơn thua**.
 
-| Cấp độ | Điều kiện trong tháng |
-|---|---|
-| 🌟 **Tháng hoàn hảo** | Mọi ngày làm việc đều là Perfect Day |
-| ⏰ **Đúng giờ mỗi ngày** | Không vắng ngày nào, không trễ ngày nào |
-| ✅ **Không vắng ngày nào** | Có mặt mọi ngày làm việc |
-
-Các cấp độ nằm trên trang **Vinh danh**.
-
-- **Chỉ hiện tháng đã kết thúc**: không có bảng thi đua "trực tiếp" giữa tháng gây áp lực.
-- **Chỉ tên và phòng ban**, xếp theo **bảng chữ cái**; không số liệu, không thứ hạng. Mỗi người chỉ hiện ở cấp cao nhất đạt được.
-- **Nghỉ phép được duyệt không bị tính** là vắng.
-- **Tự động** tính từ dữ liệu chấm công, kể cả các lần HR sửa công.
-- **Riêng tư trong tháng:** trang Tiến độ của mỗi người cho biết đang trên đà đạt cấp nào và còn bao nhiêu ngày làm việc.
-  Chỉ người đó thấy. Lỡ một ngày thì thông điệp là "tháng sau là một khởi đầu mới; mỗi Perfect Day vẫn được cộng credit".
-- Không cộng thêm credit cho vinh danh: lời cảm ơn công khai là phần thưởng, đúng tinh thần **tự nguyện**.
+[CẦN BỔ SUNG: bản này hiện **chưa có** trang vinh danh hằng tháng (đã bỏ khỏi bản thi). Cần quyết định cách đáp ứng yêu cầu này
+(ví dụ HR công bố danh sách người chuyên cần mỗi tháng dựa trên báo cáo tháng ở trang Chấm công) rồi ghi vào đây.
+Dữ liệu cần thiết đã có sẵn: báo cáo theo tháng cho biết ai không vắng, ai không trễ, ai đủ Perfect Day.]
 
 ### 4.5 Nguyên tắc chống "so sánh hơn thua"
 - Nhân viên **chỉ xem được dữ liệu của chính mình** (có kiểm thử tự động bảo đảm điều này).
@@ -154,11 +141,33 @@ Các cấp độ nằm trên trang **Vinh danh**.
 - Như máy vân tay, hệ thống **không chống gian lận tuyệt đối**; mục tiêu là **ít nhất bằng máy cũ, với ít phiền phức hơn**.
 
 ## 7. Kiểm thử
-- **114 kiểm thử tự động**, tất cả đạt: 51 kiểm thử quy tắc (giờ, IP, trạng thái chấm công, vinh danh…) và 63 kiểm thử API qua máy chủ thật.
+- **103 kiểm thử tự động**, tất cả đạt: 44 kiểm thử quy tắc (giờ, IP, trạng thái chấm công…) và 59 kiểm thử API qua máy chủ thật.
   Bao gồm: chấm từ ngoài văn phòng bị từ chối, IP giả bị bỏ qua, chấm 10 lần cùng lúc chỉ ghi một, đổi quà 5 lần cùng lúc chỉ trừ một lần,
   nhân viên không xem được dữ liệu người khác, sửa công ngày không tồn tại bị từ chối.
 - **Thử thực tế trên điện thoại** qua địa chỉ công khai (Cloudflare Tunnel): Wi-Fi công ty và 4G cho kết quả đúng như thiết kế.
-- [CẦN BỔ SUNG: chạy kiểm thử tải với số nhân sự thật của FADO Group (`tests/load.mjs`) trước buổi BOD dùng thử.]
+
+### 7.1 Kiểm thử tải: cả công ty chấm công cùng lúc
+Đề bài yêu cầu "cả công ty chấm công cùng lúc vẫn nhanh, mượt". Kịch bản mô phỏng **giờ cao điểm buổi sáng**: mỗi nhân viên là một người riêng
+(có sẵn một tháng dữ liệu), đăng nhập trong 30 giây, mở ứng dụng và bấm Chấm vào trong 60 giây, giữ trang mở thêm 20 giây (trang tự làm mới 15 giây một lần),
+trong khi HR theo dõi bảng chấm công. Chạy bằng `npm run test:server` rồi `PEOPLE=1500 npm run test:rush`.
+
+| Số nhân viên | Chấm vào (p95) | Mở trang / làm mới (p95) | Lỗi | Chấm vào được ghi nhận |
+|---|---|---|---|---|
+| 600 | 60 ms | 96 ms | 0 | 600 / 600 |
+| 1.500 | 56 ms | 77 ms | 0 | 1.500 / 1.500 |
+| 3.000 | 95 ms | 130 ms | 0 | 3.000 / 3.000 |
+| 1.000, **đăng nhập cùng một giây**, chấm vào trong 15 giây | 43 ms | 49 ms | 0 | 1.000 / 1.000 |
+
+("p95" nghĩa là 95% yêu cầu nhanh hơn mức này. Mốc đạt đặt ra: dưới 1.000 ms và không có lỗi.)
+
+- **Điểm yếu duy nhất còn lại:** nếu 1.000 người đăng nhập đúng cùng một giây, người cuối cùng phải chờ khoảng 8 giây (đăng nhập chỉ cần làm một lần mỗi 12 giờ, và
+  việc kiểm tra mật khẩu cố ý tốn tài nguyên để chống dò mật khẩu). Với vài trăm người, chờ khoảng 1–3 giây.
+- **Hai lỗi đã tìm ra và sửa nhờ chính bài kiểm tra này:**
+  1. Cứ **mỗi 2 giây** mỗi trang đang mở lại hỏi máy chủ dữ liệu mới. 600 người mở ứng dụng là 600 yêu cầu mỗi giây, máy chủ quá tải (p95 hơn 3,5 giây, có yêu cầu không được trả lời).
+     Nay trang chỉ tự làm mới **15 giây một lần** và **dừng khi tab ở chế độ nền**; bấm nút vẫn cập nhật ngay lập tức.
+  2. Cơ sở dữ liệu **quét toàn bộ bảng** cho mỗi yêu cầu, nên càng đông người càng chậm (1.500 người: p95 khoảng 11 giây). Đã thêm chỉ mục; kết quả như bảng trên.
+- **Giới hạn của phép đo:** chạy ngay trên máy phát triển, máy chủ và công cụ tải dùng chung CPU, dữ liệu giả lập, địa chỉ IP văn phòng giả lập; chưa đo qua mạng internet thật.
+  Số nhân sự thật của FADO Group chưa được cung cấp, nên đo nhiều mức (đến 3.000 người).
 
 ## 8. Lộ trình nếu FADO triển khai
 1. **Đăng nhập FADO SSO**, tên miền `chamcong.fadoai.com` trên máy chủ công ty.
@@ -173,7 +182,7 @@ Các cấp độ nằm trên trang **Vinh danh**.
    - **Nhân viên:** `alex@fado.demo`, `sarah@fado.demo` (được phép làm từ xa)
    - **HR/Admin (cũng là nhân viên):** `admin@fado.demo`
    - **Quầy đổi quà:** `cashier@fado.demo`
-3. Gợi ý trình tự: **Quản trị** → **Đặt lại demo** → nhân viên bấm **Chấm vào** → HR xem trang **Chấm công** → nhân viên xem **Vinh danh** (tháng trước) và **Tiến độ** → **Quà tặng** để đổi quà → quầy nhập mã voucher.
+3. Gợi ý trình tự: **Quản trị** → **Đặt lại demo** → nhân viên bấm **Chấm vào** → HR xem trang **Chấm công** → nhân viên xem **Tiến độ** → **Quà tặng** để đổi quà → quầy nhập mã voucher.
 4. Thử trên điện thoại: `npm run share` tạo địa chỉ công khai; ở Wi-Fi văn phòng admin bấm **Thêm mạng tôi đang dùng**, sau đó thử chấm trên Wi-Fi và trên 4G.
 
 ---

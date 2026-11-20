@@ -332,40 +332,8 @@ a.text-button { text-decoration: none; }
 .pg-reward .pg-bar { background: #d3ccf3; }
 .pg-reward .pg-bar > i { background: var(--violet); }
 .pg-link { flex-shrink: 0; color: #3f359f; font-size: 13px; font-weight: 800; }
-.pg-honour { display: flex; align-items: center; gap: 16px; background: #fffaf0; border-color: #f3e3bf; }
-.pg-honour > div { flex: 1; min-width: 0; }
-.pg-honour strong { font-size: 16px; letter-spacing: -.4px; }
-.pg-honour p { margin: 4px 0 0; color: #6b5a33; font-size: 12px; line-height: 1.45; }
-.pg-honour .pg-hint { margin-top: 8px; color: #94875f; font-size: 11px; }
-.pg-honour-icon { display: grid; width: 52px; height: 52px; flex-shrink: 0; place-items: center; border-radius: 14px; background: #fff0c9; font-size: 26px; }
-@media (max-width: 760px) { .pg-honour { flex-wrap: wrap; } }
-
-/* Honour wall */
-.hw-intro { padding-top: 46px; }
-.hw-intro h1 { font-size: clamp(34px, 5vw, 50px); letter-spacing: -2.4px; }
-.hw-note { max-width: 560px; margin: 10px 0 0; color: var(--soft-ink); font-size: 14px; line-height: 1.55; }
-.hw-month { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 30px 0 6px; }
-.hw-month h2 { margin: 0; font-size: 22px; letter-spacing: -.8px; }
-.hw-month div { display: flex; gap: 14px; }
-.hw-month .text-button:disabled { opacity: .35; cursor: default; }
-.hw-you { margin: 18px 0 0; padding: 16px 20px; border-radius: 16px; background: var(--ink); color: white; font-size: 14px; }
-.hw-you strong { color: var(--leaf); }
-.hw-tier { margin-top: 26px; }
-.hw-tier-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 12px; }
-.hw-tier-head h3 { margin: 0; font-size: 17px; letter-spacing: -.4px; }
-.hw-tier-head p { margin: 0; color: var(--soft-ink); font-size: 12px; }
-.hw-people { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; margin: 0; padding: 0; list-style: none; }
-.hw-person { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 16px; background: white; }
-.hw-person.you { border-color: var(--ink); box-shadow: 0 0 0 2px var(--leaf); }
-.hw-person .avatar { flex-shrink: 0; }
-.hw-person strong { display: block; font-size: 14px; }
-.hw-person div span { display: block; color: var(--soft-ink); font-size: 12px; }
-.hw-tier.perfect_month .hw-person { background: #fffaf0; border-color: #f3e3bf; }
-.hw-empty { margin: 8px 0 0; color: var(--soft-ink); font-size: 13px; }
-.hw-fine { margin: 34px 0 0; color: #83908e; font-size: 12px; line-height: 1.5; }
 @media (max-width: 760px) {
-  .hw-tier-head { flex-direction: column; gap: 3px; }
-  /* Admins who are also employees have seven menu items: squeeze them in, and scroll sideways if a phone is narrower still. */
+  /* Admins who are also employees have six menu items: squeeze them in, and scroll sideways if a phone is narrower still. */
   .rail { padding-right: 6px; padding-left: 6px; }
   .nav-list { width: min(560px, 100%); justify-content: space-between; overflow-x: auto; scrollbar-width: none; }
   .nav-list::-webkit-scrollbar { display: none; }

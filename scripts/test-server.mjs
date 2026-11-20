@@ -7,7 +7,7 @@
 // (Next.js allows only one dev server per folder). It uses its own throwaway database, so your demo data is untouched.
 import { spawn } from "node:child_process";
 import { mkdirSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { availableParallelism, tmpdir } from "node:os";
 import path from "node:path";
 
 const PORT = process.env.TEST_PORT ?? "3100";
@@ -21,6 +21,7 @@ const env = {
   TRUSTED_PROXY: "cloudflare", // tests say which network they're on with CF-Connecting-IP
   WORKDAY_DB: path.join(dataDir, "test.db"),
   NEXT_DIST_DIR: ".next-test", // its own build folder, so a running `npm run share` keeps working
+  UV_THREADPOOL_SIZE: String(Math.max(4, availableParallelism())), // same as `npm run share`: password checks use every core
 };
 
 function run(args) {

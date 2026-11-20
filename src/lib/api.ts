@@ -1,3 +1,5 @@
+import { EMPLOYEE_POLL_MS } from "./polling";
+
 const refreshers = new Set<() => Promise<void>>();
 
 // Signed out → login page; wrong role (a 403 that names your home) → your home page.
@@ -10,7 +12,9 @@ function redirectOnAuthFailure(status: number, data: unknown) {
   return true;
 }
 
-export function createPolledStore<T>(url: string, initial: T, intervalMs = 2000) {
+// Asks the server for fresh data every `intervalMs`, but only while the page is actually on screen: a tab in the
+// background costs the server nothing, and the data is refreshed the moment the person comes back to it.
+export function createPolledStore<T>(url: string, initial: T, intervalMs = EMPLOYEE_POLL_MS) {
   let snapshot = initial;
   let timer: ReturnType<typeof setInterval> | null = null;
   let inFlight = false;
@@ -39,6 +43,13 @@ export function createPolledStore<T>(url: string, initial: T, intervalMs = 2000)
 
   refreshers.add(refresh);
 
+  const tick = () => {
+    if (!document.hidden) void refresh();
+  };
+  const onVisible = () => {
+    if (!document.hidden) void refresh();
+  };
+
   return {
     initial,
     getSnapshot: () => snapshot,
@@ -46,13 +57,15 @@ export function createPolledStore<T>(url: string, initial: T, intervalMs = 2000)
       listeners.add(notify);
       if (listeners.size === 1) {
         void refresh();
-        timer = setInterval(refresh, intervalMs);
+        timer = setInterval(tick, intervalMs);
+        document.addEventListener("visibilitychange", onVisible);
       }
       return () => {
         listeners.delete(notify);
         if (listeners.size === 0 && timer) {
           clearInterval(timer);
           timer = null;
+          document.removeEventListener("visibilitychange", onVisible);
         }
       };
     },

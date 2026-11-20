@@ -1,6 +1,5 @@
 import { useSyncExternalStore } from "react";
 import { createPolledStore } from "./api";
-import type { HonourTier } from "./honours";
 import type { DayInfo } from "./progress";
 
 export type ProgressState = {
@@ -24,7 +23,6 @@ export type ProgressState = {
     next: { target: number; remaining: number; credits: number } | null;
   };
   reward: { name: string; icon: string; cost: number; balance: number; remaining: number };
-  honour: { tier: HonourTier | null; daysSoFar: number; daysLeft: number };
 };
 
 const progressStore = createPolledStore<ProgressState>("/api/progress", {
@@ -37,7 +35,6 @@ const progressStore = createPolledStore<ProgressState>("/api/progress", {
   stats: { perfectDays: 0, scheduledShifts: 0, scheduledToDate: 0, attended: 0, arrivedByStart: 0, milestonesReached: 0 },
   milestones: { reached: [], ladder: [], next: null },
   reward: { name: "", icon: "", cost: 0, balance: 0, remaining: 0 },
-  honour: { tier: null, daysSoFar: 0, daysLeft: 0 },
 });
 
 export function useProgress() {
